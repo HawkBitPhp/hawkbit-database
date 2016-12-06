@@ -1,0 +1,45 @@
+{
+  "name": "hawkbit/persistence",
+  "type": "hawkbit-component",
+  "description": "Persistence layer for Hawkbit PSR-7 Micro PHP framework",
+  "keywords": [
+    "doctrine",
+    "orm",
+    "persistence",
+    "hawkbit"
+  ],
+  "homepage": "https://github.com/HawkBitPhP",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Marco Bunge",
+      "email": "marco_bunge@web.de"
+    }
+  ],
+  "require": {
+    "php": ">=5.5.0",
+    "doctrine/collections": "~1.3",
+    "doctrine/dbal": "~2.5",
+    "doctrine/inflector": "~1.1"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "~4.8",
+    "hawkbit/hawkbit": "~2.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Hawkbit\\Storage\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Hawkbit\\Storage\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": [
+      "cd vendor/phpunit/phpunit",
+      "phpunit --configuration phpunit.xml"
+    ]
+  }
+}
