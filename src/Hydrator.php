@@ -19,7 +19,7 @@ use Hawkbit\Storage\Support\ReflectionStore;
  *
  * @package Hawkbit\Storage
  */
-final class Hydrator
+class Hydrator
 {
     /**
      * Map key-value array

@@ -50,7 +50,7 @@ interface Mapper
      * Find entity by primary key
      *
      * @param [] $primaryKey
-     * @return object[]
+     * @return object[]|object
      */
     public function find($primaryKey = []);
 

@@ -8,11 +8,8 @@
 
 namespace Hawkbit\Storage;
 
-
-use Hawkbit\Storage\Connection as ConnectionWrapper;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Connection as Connection;
 
 final class ConnectionManager
 {
@@ -20,12 +17,12 @@ final class ConnectionManager
     const DEFAULT_CONNECTION = 'default';
 
     /**
-     * @var \Doctrine\DBAL\Connection[]
+     * @var Connection[]
      */
     protected $connections = [];
 
     /**
-     * @var \Doctrine\DBAL\Connection[]
+     * @var Connection[]
      */
     protected $previousConnections = [];
 
@@ -65,39 +62,35 @@ final class ConnectionManager
      * class from container.
      *
      * @param $definition
-     * @return \Doctrine\DBAL\Connection|\Hawkbit\Storage\Connection
+     * @return Connection
      *
      * @throws \Doctrine\DBAL\DBALException
      */
     public static function create($definition)
     {
-        // create connection from definition
-        if ($definition instanceof Connection) {
-            return $definition;
+        if($definition instanceof Connection){
+            $connection = $definition;
+        }else{
+            // assume a valid service from IoC container
+            // or assume a valid dsn and convert to connection array
+            if (is_string($definition)) {
+                $definition = ['url' => $definition];
+            }
+
+            if (!is_array($definition)) {
+                throw new DBALException('Unable to determine parameter array from definition');
+            }
+
+            $definition['wrapperClass'] = Connection::class;
+            $connection = DriverManager::getConnection($definition);
+
+            if (!($connection instanceof Connection)) {
+                throw new \RuntimeException(sprintf('Connection needs to be an instance of %s', Connection::class));
+            }
         }
 
-        // assume a valid service from IoC container
-        // or assume a valid dsn and convert to connection array
-        if (is_string($definition)) {
-            $definition = ['url' => $definition];
-        }
-
-        if (!is_array($definition)) {
-            throw new DBALException('Unable to determine parameter array from definition');
-        }
-
-        if (!array_key_exists('wrapperClass', $definition)) {
-            $definition['wrapperClass'] = ConnectionWrapper::class;
-        }
-
-        $connection = DriverManager::getConnection($definition);
-
-        if (!($connection instanceof Connection)) {
-            throw new \RuntimeException(sprintf('Connection needs to be an instance of %s', Connection::class));
-        }
-
-        //setup special configuration for blast connections
-        if ($connection instanceof \Hawkbit\Storage\Connection) {
+        //setup special configuration for connections
+        if ($connection instanceof Connection) {
             if (array_key_exists('prefix', $definition)) {
                 $connection->setPrefix($definition['prefix']);
             }
@@ -136,7 +129,7 @@ final class ConnectionManager
     /**
      * Get all connections
      *
-     * @return \Doctrine\DBAL\Connection[]|\Hawkbit\Storage\Connection[]
+     * @return Connection[]
      */
     public function all()
     {
@@ -149,7 +142,7 @@ final class ConnectionManager
      *
      * @see http://docs.doctrine-project.org/projects/doctrine-dbal/en/latest/reference/configuration.html#getting-a-connection
      *
-     * @param array|\Doctrine\DBAL\Connection|string $connection
+     * @param array|Connection|string $connection
      * @param string $name
      *
      * @return $this
@@ -213,7 +206,7 @@ final class ConnectionManager
      *
      * @param $name
      *
-     * @return \Doctrine\DBAL\Connection|\Hawkbit\Storage\Connection
+     * @return Connection
      *
      * @throws \Doctrine\DBAL\DBALException
      */

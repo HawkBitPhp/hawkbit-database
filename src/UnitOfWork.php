@@ -13,103 +13,173 @@ final class UnitOfWork
 {
 
     /**
-     * @var Mapper
+     * @var object[]
      */
-    protected $mapper;
+    private $newObjects = [];
 
     /**
-     * @var array
+     * @var object[]
      */
-    protected $work = [
-        'create' => [],
-        'update' => [],
-        'delete' => [],
-    ];
+    private $updatedObjects = [];
+
+    /**
+     * @var object[]
+     */
+    private $deletedObjects = [];
+
+    /**
+     * @var object[]
+     */
+    private $completed = [];
+
+    /**
+     * @var Connection
+     */
+    private $connection;
+
+    /**
+     * @var \Exception
+     */
+    private $exception;
 
     /**
      * UnitOfWork constructor.
-     * @param Mapper $mapper
+     * @param Connection $connection
+     * @internal param Mapper $mapper
      */
-    public function __construct(Mapper $mapper)
+    public function __construct(Connection $connection)
     {
-        $this->mapper = $mapper;
+        $this->connection = $connection;
     }
 
     /**
-     * @param $entity
-     * @return UnitOfWork
+     * @return \object[]
      */
-    public function create($entity){
-        return $this->plan(__FUNCTION__, function() use($entity) {
-            return $this->mapper->create($entity);
-        });
+    public function getCompleted()
+    {
+        return $this->completed;
     }
 
     /**
-     * @param $entity
-     * @return UnitOfWork
+     * @return Connection
      */
-    public function update($entity){
-        return $this->plan(__FUNCTION__, function() use($entity) {
-            return $this->mapper->update($entity);
-        });
+    public function getConnection()
+    {
+        return $this->connection;
     }
 
     /**
-     * @param $entity
-     * @return UnitOfWork
+     * @return \Exception
      */
-    public function delete($entity){
-        return $this->plan(__FUNCTION__, function() use($entity) {
-            return $this->mapper->delete($entity);
-        });
+    public function getException()
+    {
+        return $this->exception;
+    }
+
+    /**
+     * @param $object
+     */
+    public function update($object)
+    {
+        $this->updatedObjects[ spl_object_hash($object) ] = $object;
+    }
+    /**
+     * Register an object as dirty. This is valid unless:
+     * - The object is registered to be removed
+     * - The object is registered as dirty (has been changed)
+     * - The object is already registered as new
+     *
+     * @param $object
+     */
+    public function create($object)
+    {
+        // Check if we meet our criteria.
+        if ($this->isDeleted($object)) {
+            throw new \InvalidArgumentException('Cannot register as new, object is marked for deletion.');
+        }
+        if ($this->isUpdated($object)) {
+            throw new \InvalidArgumentException('Cannot register as new, object is marked as dirty.');
+        }
+        if ($this->isNew($object)) {
+            throw new \InvalidArgumentException('Cannot register as new, object is already marked as new.');
+        }
+        $this->newObjects[ spl_object_hash($object) ] = $object;
+    }
+    /**
+     * @param $object
+     */
+    public function delete($object)
+    {
+        $this->deletedObjects[ spl_object_hash($object) ] = $object;
+    }
+    /**
+     * @param $object
+     * @return bool
+     */
+    public function isUpdated($object)
+    {
+        return isset($this->updatedObjects[ spl_object_hash($object) ]);
+    }
+    /**
+     * @param $object
+     * @return bool
+     */
+    public function isNew($object)
+    {
+        return isset($this->newObjects[ spl_object_hash($object) ]);
+    }
+    /**
+     * @param $object
+     * @return bool
+     */
+    public function isDeleted($object)
+    {
+        return isset($this->deletedObjects[ spl_object_hash($object) ]);
     }
 
     /**
      * @return bool
      * @throws \Exception
      */
-    public function execute(){
+    public function commit(){
 
-        $connection = $this->mapper->getConnection();
+        $connection = $this->connection;
 
         try{
             $connection->beginTransaction();
 
             // insert
-            $this->doWork('create');
+            $this->process('new',$this->newObjects, function($entity) {
+                return $this->connection->loadMapper($entity)->create($entity);
+            });
             // update
-            $this->doWork('update');
+            $this->process('updated',$this->updatedObjects, function($entity) {
+                return $this->connection->loadMapper($entity)->update($entity);
+            });
             // delete
-            $this->doWork('delete');
+            $this->process('deleted',$this->deletedObjects, function($entity) {
+                return $this->connection->loadMapper($entity)->delete($entity);
+            });
 
             $connection->commit();
+            return true;
 
         }catch(\Exception $e){
             $connection->rollBack();
-            throw $e;
+            $this->exception = $e;
+            return false;
         }
-
-        return true;
     }
 
     /**
+     * @param $entities
      * @param $task
      */
-    protected function doWork($task){
-        foreach ($this->work[$task] as $task){
-            $task();
+    protected function process($label, $entities, callable $task){
+        foreach ($entities as $entity){
+            $task($entity);
+            $this->completed[$label][$entity];
         }
-    }
-
-    /**
-     * @param $action
-     * @param callable $callback
-     * @return $this
-     */
-    protected function plan($action, callable $callback){
-        $this->work[$action][] = $callback;
-        return $this;
     }
 
 }

@@ -15,7 +15,6 @@ use Doctrine\DBAL\Schema\Column;
 
 abstract class AbstractMapper implements Mapper
 {
-    private static $identityMap;
 
     /**
      * @var string
@@ -40,12 +39,17 @@ abstract class AbstractMapper implements Mapper
     /**
      * @var Hydrator
      */
-    protected $hydrator;
+    private $hydrator;
 
     /**
      * @var string
      */
     protected $lastInsertIdReference;
+
+    /**
+     * @var IdentityMap
+     */
+    private $identityMap;
 
     /**
      * @var Connection
@@ -60,24 +64,16 @@ abstract class AbstractMapper implements Mapper
      * Repository constructor.
      * @param Connection $connection
      * @param Hydrator $hydrator
-     * @param Gateway $gateway
      */
-    public function __construct(Connection $connection, Hydrator $hydrator = null, Gateway $gateway = null)
+    public function __construct(Connection $connection, Hydrator $hydrator = null)
     {
         $this->connection = $connection;
         $this->hydrator = $hydrator ? $hydrator : new Hydrator();
 
         $this->doDefine();
 
-        $this->gateway = $gateway ? $gateway : new Gateway($this->connection, $this->getTableName());
-    }
-
-    /**
-     * @return Hydrator
-     */
-    public function getHydrator()
-    {
-        return $this->hydrator;
+        $this->gateway = new Gateway($this->connection, $this->getTableName());
+        $this->identityMap = new IdentityMap();
     }
 
     /**
@@ -97,190 +93,22 @@ abstract class AbstractMapper implements Mapper
     }
 
     /**
-     * @return mixed
+     * @return Hydrator
      */
-    abstract public function define();
-
-    /**
-     * Find entity by primary key
-     *
-     * $repository->find(['id' => 1]);
-     *
-     * @param [] $primaryKey
-     * @return object[]
-     */
-    public function find($primaryKey = [])
+    public function getHydrator()
     {
-        // load entity from cache
-        if(isset($primaryKey[$this->getLastInsertIdReference()])){
-            if($this->hasIdentity($primaryKey[$this->getLastInsertIdReference()])){
-                return $this->getIdentity($primaryKey[$this->getLastInsertIdReference()]);
-            }
-        }
-
-        return $this->select(function (QueryBuilder $queryBuilder) use ($primaryKey) {
-            $expressionBuilder = $queryBuilder->expr();
-            $expression = [];
-            $keys = $this->getPrimaryKey();
-
-            // build from valid primary keys
-            foreach ($keys as $key) {
-                if (!isset($primaryKey[$key])) {
-                    continue;
-                }
-
-                $expression[] = $expressionBuilder->eq($key, $queryBuilder->createPositionalParameter($primaryKey[$key]));
-            }
-
-            $queryBuilder->where(call_user_func_array([$expressionBuilder, 'andX'], $expression));
-        });
+        return $this->hydrator;
     }
 
     /**
-     * Find entity by criteria callback
-     *
-     * $repository->findBy(function(QueryBuilder $query){
-     *  $query->where('id = 1');
-     * });
-     *
-     * @param callable $queryCallback
-     * @param array $fields
-     * @return \object[]
+     * @return IdentityMap
      */
-    public function select(callable $queryCallback, $fields = ['*'], $one = false)
+    public function getIdentityMap()
     {
-        $query = $this->gateway->select($fields);
-
-        call_user_func_array($queryCallback, [&$query]);
-
-        if (true === $one) {
-            $query->setMaxResults(1);
-        }
-        $recordSet = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
-
-        if (0 === count($recordSet)) {
-            return [];
-        }
-
-        $set = [];
-        foreach ($recordSet as $record) {
-            $set[] = $this->map($record);
-        }
-
-        return $set;
+        return $this->identityMap;
     }
 
-    /**
-     * Get a collection of all entities
-     *
-     * @param object $entity
-     * @return \Doctrine\DBAL\Driver\Statement|int
-     */
-    public function delete($entity)
-    {
-        $query = $this->gateway->delete();
-        $expressionBuilder = $query->expr();
-        $expression = [];
-        $columns = $this->getColumns();
-        $keys = $this->getPrimaryKey();
-        $data = $this->extract($entity);
 
-        // build from valid primary keys
-        foreach ($keys as $key) {
-            if (!isset($data[$key])) {
-                continue;
-            }
-
-            $type = isset($columns[$key]) ? $columns[$key]->getType()->getName() : \PDO::PARAM_STR;
-            $expression[] = $expressionBuilder->eq($key, $query->createPositionalParameter($data[$key], $type));
-        }
-
-        $query->where(call_user_func_array([$expressionBuilder, 'andX'], $expression));
-
-        $result = $query->execute();
-
-        $this->removeIdentity($data[$this->getLastInsertIdReference()]);
-
-        return $result;
-    }
-
-    /**
-     * @param $entity
-     * @return object
-     */
-    public function create($entity)
-    {
-        $columns = $this->getColumns();
-        $data = $this->extract($entity);
-
-        $query = $this->gateway->create();
-        // prepare insert statement set values
-        foreach ($data as $key => $value) {
-            $type = isset($columns[$key]) ? $columns[$key]->getType()->getName() : \PDO::PARAM_STR;
-            $query->setValue($key, $query->createPositionalParameter($value, $type));
-        }
-
-        $query->execute();
-
-        //inject auto increment key
-        if (null !== $this->getLastInsertIdReference()) {
-            $data[$this->getLastInsertIdReference()] = $this->connection->lastInsertId();
-            $entity = $this->map($data, $entity);
-
-            // add identity
-            $this->addIdentity($data[$this->getLastInsertIdReference()], $entity);
-        }
-
-        return $entity;
-    }
-
-    /**
-     * @param $entity
-     * @return mixed
-     */
-    public function update($entity)
-    {
-        $keys = $this->getPrimaryKey();
-        $columns = $this->getColumns();
-        $expression = [];
-        $data = $this->extract($entity);
-
-        // extract primary keys and pass to where condition
-        $query = $this->gateway->update();
-        $expressionBuilder = $query->expr();
-        foreach ($keys as $key) {
-            if (!isset($data[$key])) {
-                continue;
-            }
-            unset($data[$key]);
-            $expression[] = $expressionBuilder->eq($key, $query->createPositionalParameter($data[$key]));
-        }
-        $query->where(call_user_func_array([$expressionBuilder, 'andX'], $expression));
-
-        // set values
-        foreach ($data as $key => $value) {
-            $type = isset($columns[$key]) ? $columns[$key]->getType()->getName() : \PDO::PARAM_STR;
-            $query->set($key, $query->createPositionalParameter($value, $type));
-        }
-
-        $query->execute();
-        $this->addIdentity($data[$this->getLastInsertIdReference()], $entity);
-
-        // we don't need to update entity data
-        return $entity;
-    }
-
-    /**
-     * Save new or existing entity
-     *
-     * @param object[]|object $entity
-     * @return int
-     */
-    public function save($entity)
-    {
-        $new = $this->isNew($entity);
-        return $new ? $this->create($entity) : $this->update($entity);
-    }
 
     /**
      * Get entity class
@@ -335,24 +163,16 @@ abstract class AbstractMapper implements Mapper
     }
 
     /**
-     * @param object|array $data
-     * @return bool
+     * @param null $id
+     * @return object
      */
-    protected function isNew($data)
-    {
-        if ($this->isEntity($data)) {
-            $data = $this->extract($data);
+    final public function createEntity($id = null){
+        $identityMap = $this->getIdentityMap();
+        if($identityMap->hasId($id)){
+            return $identityMap->getObject($id);
         }
-
-        // iterate primary keys
-        // if any key is empty, the entity is new
-        foreach ($this->getPrimaryKey() as $key) {
-            $empty = true === empty($data[$key]);
-            if ($empty) {
-                return true;
-            }
-        }
-        return false;
+        $class = $this->getEntityClass();
+        return new $class;
     }
 
     /**
@@ -375,6 +195,213 @@ abstract class AbstractMapper implements Mapper
     }
 
     /**
+     * @param object|array $dataOrEntity
+     * @return bool
+     */
+    public function isNew($dataOrEntity)
+    {
+        if ($this->isEntity($dataOrEntity)) {
+            $dataOrEntity = $this->extract($dataOrEntity);
+        }
+
+        // iterate primary keys
+        // if any key is empty, the entity is new
+        foreach ($this->getPrimaryKey() as $key) {
+            $empty = true === empty($dataOrEntity[$key]);
+            if ($empty) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Find entity by primary key
+     *
+     * $repository->find(['id' => 1]);
+     *
+     * @param [] $primaryKey
+     * @return object[]|object
+     */
+    public function find($primaryKey = [])
+    {
+        // load entity from cache
+        if(isset($primaryKey[$this->getLastInsertIdReference()])){
+            if($this->getIdentityMap()->hasId($primaryKey[$this->getLastInsertIdReference()])){
+                return $this->getIdentityMap()->getObject($primaryKey[$this->getLastInsertIdReference()]);
+            }
+        }
+
+        return $this->select(function (QueryBuilder $queryBuilder) use ($primaryKey) {
+            $expressionBuilder = $queryBuilder->expr();
+            $expression = [];
+            $keys = $this->getPrimaryKey();
+
+            // build from valid primary keys
+            foreach ($keys as $key) {
+                if (!isset($primaryKey[$key])) {
+                    continue;
+                }
+
+                $expression[] = $expressionBuilder->eq($key, $queryBuilder->createPositionalParameter($primaryKey[$key]));
+            }
+
+            $queryBuilder->where(call_user_func_array([$expressionBuilder, 'andX'], $expression));
+        }, ['*'], true);
+    }
+
+    /**
+     * Find entity by criteria callback
+     *
+     * $repository->findBy(function(QueryBuilder $query){
+     *  $query->where('id = 1');
+     * });
+     *
+     * @param callable $queryCallback
+     * @param array $fields
+     * @param bool $one
+     * @return object[]|object
+     */
+    public function select(callable $queryCallback, $fields = ['*'], $one = false)
+    {
+        $query = $this->gateway->select($fields);
+
+        call_user_func_array($queryCallback, [&$query]);
+
+        if (true === $one) {
+            $query->setMaxResults(1);
+        }
+        $recordSet = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+
+        if (0 === count($recordSet)) {
+            return true === $one ? null : [];
+        }
+
+        $set = [];
+        foreach ($recordSet as $record) {
+            $set[] = $this->map($record);
+        }
+
+        reset($set);
+
+        $result = true === $one ? current($set) : $set;
+
+        return $result;
+    }
+
+    /**
+     * Get a collection of all entities
+     *
+     * @param object $entity
+     * @return \Doctrine\DBAL\Driver\Statement|int
+     */
+    public function delete($entity)
+    {
+        $query = $this->gateway->delete();
+        $expressionBuilder = $query->expr();
+        $expression = [];
+        $columns = $this->getColumns();
+        $keys = $this->getPrimaryKey();
+        $data = $this->extract($entity);
+
+        // build from valid primary keys
+        foreach ($keys as $key) {
+            if (!isset($data[$key])) {
+                continue;
+            }
+
+            $type = isset($columns[$key]) ? $columns[$key]->getType()->getName() : \PDO::PARAM_STR;
+            $expression[] = $expressionBuilder->eq($key, $query->createPositionalParameter($data[$key], $type));
+        }
+
+        $query->where(call_user_func_array([$expressionBuilder, 'andX'], $expression));
+
+        $result = $query->execute();
+
+        $this->getIdentityMap()->removeId($data[$this->getLastInsertIdReference()]);
+
+        return $result;
+    }
+
+    /**
+     * @param $entity
+     * @return object
+     */
+    public function create($entity)
+    {
+        $columns = $this->getColumns();
+        $data = $this->extract($entity);
+
+        $query = $this->gateway->create();
+        // prepare insert statement set values
+        foreach ($data as $key => $value) {
+            $type = isset($columns[$key]) ? $columns[$key]->getType()->getName() : \PDO::PARAM_STR;
+            $query->setValue($key, $query->createPositionalParameter($value, $type));
+        }
+
+        $query->execute();
+
+        //inject auto increment key
+        if (null !== $this->getLastInsertIdReference()) {
+            $data[$this->getLastInsertIdReference()] = $this->connection->lastInsertId();
+            $entity = $this->map($data, $entity);
+
+            // add identity
+            $this->getIdentityMap()->set($data[$this->getLastInsertIdReference()], $entity);
+        }
+
+        return $entity;
+    }
+
+    /**
+     * @param $entity
+     * @return mixed
+     */
+    public function update($entity)
+    {
+        $keys = $this->getPrimaryKey();
+        $columns = $this->getColumns();
+        $expression = [];
+        $data = $this->extract($entity);
+
+        // extract primary keys and pass to where condition
+        $query = $this->gateway->update();
+        $expressionBuilder = $query->expr();
+        foreach ($keys as $key) {
+            if (!isset($data[$key])) {
+                continue;
+            }
+            unset($data[$key]);
+            $expression[] = $expressionBuilder->eq($key, $query->createPositionalParameter($data[$key]));
+        }
+        $query->where(call_user_func_array([$expressionBuilder, 'andX'], $expression));
+
+        // set values
+        foreach ($data as $key => $value) {
+            $type = isset($columns[$key]) ? $columns[$key]->getType()->getName() : \PDO::PARAM_STR;
+            $query->set($key, $query->createPositionalParameter($value, $type));
+        }
+
+        $query->execute();
+        $this->getIdentityMap()->set($data[$this->getLastInsertIdReference()], $entity);
+
+        // we don't need to update entity data
+        return $entity;
+    }
+
+    /**
+     * Save new or existing entity
+     *
+     * @param object[]|object $entity
+     * @return int
+     */
+    public function save($entity)
+    {
+        $new = $this->isNew($entity);
+        return $new ? $this->create($entity) : $this->update($entity);
+    }
+
+    /**
      * Hydrate data to entity and respect data types
      *
      * @param $data
@@ -385,13 +412,11 @@ abstract class AbstractMapper implements Mapper
     {
 
         // process entity
-        $mapper = $this;
-        $columns = $mapper->getColumns();
+        $columns = $this->getColumns();
         if (false === $this->isEntity($entity)) {
-            $reflection = new \ReflectionClass($mapper->getEntityClass());
+            $reflection = new \ReflectionClass($this->getEntityClass());
             $entity = $reflection->newInstance();
         }
-        $array = [];
 
         foreach ($columns as $column) {
             $name = $column->getName();
@@ -400,7 +425,7 @@ abstract class AbstractMapper implements Mapper
                 continue;
             }
 
-            $array[] = $column->getType()->convertToPHPValue($data[$name], $this->connection->getDatabasePlatform());
+            $data[$name] = $column->getType()->convertToPHPValue($data[$name], $this->connection->getDatabasePlatform());
         }
 
         return $this->hydrator->hydrate($data, $entity);
@@ -413,9 +438,8 @@ abstract class AbstractMapper implements Mapper
      */
     protected function extract($entity)
     {
-        $mapper = $this;
-        $columns = $mapper->getColumns();
-        $class = $mapper->getEntityClass();
+        $columns = $this->getColumns();
+        $class = $this->getEntityClass();
 
         if (!$this->isEntity($entity)) {
             throw new \InvalidArgumentException('Object needs to be an instance of ' . $class);
@@ -435,6 +459,11 @@ abstract class AbstractMapper implements Mapper
 
         return $data;
     }
+
+    /**
+     * @return mixed
+     */
+    abstract protected function define();
 
     /**
      *
@@ -491,45 +520,4 @@ abstract class AbstractMapper implements Mapper
 
     }
 
-
-    /**
-     * @param $identity
-     * @param $entity
-     * @return $this
-     */
-    private function addIdentity($identity, $entity)
-    {
-        self::$identityMap[$this->entityClass][$identity] = $entity;
-        return $this;
-    }
-
-    /**
-     * @param $identity
-     * @return null
-     */
-    private function getIdentity($identity)
-    {
-        return $this->hasIdentity($identity)
-            ? self::$identityMap[$this->entityClass][$identity]
-            : null;
-    }
-
-    /**
-     * @param $identity
-     */
-    private function removeIdentity($identity)
-    {
-        if ($this->hasIdentity($identity)) {
-            unset(self::$identityMap[$this->entityClass][$identity]);
-        }
-    }
-
-    /**
-     * @param $identity
-     * @return bool
-     */
-    private function hasIdentity($identity)
-    {
-        return isset(self::$identityMap[$this->entityClass][$identity]);
-    }
 }
