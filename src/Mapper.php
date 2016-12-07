@@ -47,6 +47,26 @@ interface Mapper
     public function getColumns();
 
     /**
+     * @return string
+     */
+    public function getLastInsertIdReference();
+
+    /**
+     * @return Gateway
+     */
+    public function getGateway();
+
+    /**
+     * @return Hydrator
+     */
+    public function getHydrator();
+
+    /**
+     * @return IdentityMap
+     */
+    public function getIdentityMap();
+
+    /**
      * Find entity by primary key
      *
      * @param [] $primaryKey

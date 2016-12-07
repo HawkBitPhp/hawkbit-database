@@ -15,6 +15,7 @@ use SplObjectStorage;
 
 class IdentityMap
 {
+
     /**
      * @var ArrayObject
      */
@@ -29,16 +30,37 @@ class IdentityMap
     {
         $this->objectToId = new SplObjectStorage();
         $this->idToObject = new ArrayObject();
+        $this->removed = new ArrayObject();
     }
+
     /**
      * @param integer $id
      * @param mixed $object
      */
     public function set($id, $object)
     {
-        $this->idToObject[$id]     = $object;
+        $this->idToObject[$id] = $object;
         $this->objectToId[$object] = $id;
     }
+
+    /**
+     * @param integer $id
+     * @return boolean
+     */
+    public function hasId($id)
+    {
+        return isset($this->idToObject[$id]);
+    }
+
+    /**
+     * @param mixed $object
+     * @return boolean
+     */
+    public function hasObject($object)
+    {
+        return isset($this->objectToId[$object]);
+    }
+
     /**
      * @param mixed $object
      * @throws OutOfBoundsException
@@ -52,24 +74,10 @@ class IdentityMap
 
         /** @var integer $id */
         $id = $this->objectToId[$object];
+
         return $id;
     }
-    /**
-     * @param integer $id
-     * @return boolean
-     */
-    public function hasId($id)
-    {
-        return isset($this->idToObject[$id]);
-    }
-    /**
-     * @param mixed $object
-     * @return boolean
-     */
-    public function hasObject($object)
-    {
-        return isset($this->objectToId[$object]);
-    }
+
     /**
      * @param string|int $id
      * @throws OutOfBoundsException
@@ -80,28 +88,43 @@ class IdentityMap
         if (false === $this->hasId($id)) {
             throw new OutOfBoundsException();
         }
+
         return $this->idToObject[$id];
     }
 
     /**
      * @param $object
      */
-    public function removeObject($object){
-        if($this->hasObject($object)){
+    public function removeObject($object)
+    {
+        if (false === $this->hasObject($object)) {
             $id = $this->getId($object);
             unset($this->objectToId[$object]);
             unset($this->idToObject[$id]);
+            $this->removed[$id] = $object;
         }
     }
 
     /**
      * @param $id
      */
-    public function removeId($id){
-        if($this->hasId($id)){
+    public function removeId($id)
+    {
+        if ($this->hasId($id)) {
             $object = $this->getObject($id);
             unset($this->objectToId[$object]);
             unset($this->idToObject[$id]);
+            $this->removed[$id] = $object;
         }
+    }
+
+    /**
+     * @return array
+     */
+    public function toArray()
+    {
+        $modified = $this->idToObject->getArrayCopy();
+        $removed = $this->removed->getArrayCopy();
+        return array_replace($modified, $removed);
     }
 }

@@ -7,16 +7,16 @@
 [![Coverage Status][ico-coveralls]][link-coveralls]
 
 Persistence layer for Hawkbit PSR-7 Micro PHP framework.
-Hawkbit Persitence uses factories of `dasprid/container-interop-doctrine` and wraps them with in a PersistenceService
+Features unit of work, identity map, object graph, popo's and mapper. 
 
 ## Install
 
 ### Using Composer
 
-Hawkbit Persistence is available on [Packagist][link-packagist] and can be installed using [Composer](https://getcomposer.org/). This can be done by running the following command or by updating your `composer.json` file.
+Hawkbit Database is available on [Packagist][link-packagist] and can be installed using [Composer](https://getcomposer.org/). This can be done by running the following command or by updating your `composer.json` file.
 
 ```bash
-composer require hawkbit/persistence
+composer require hawkbit/database
 ```
 
 composer.json
@@ -24,7 +24,7 @@ composer.json
 ```javascript
 {
     "require": {
-        "hawkbit/persistence": "~1.0"
+        "hawkbit/database": "~1.0"
     }
 }
 ```
@@ -52,76 +52,89 @@ The following versions of PHP are supported by this version.
 
 ## Setup
 
-Setup with an existing application configuration (we refer to [tests/assets/config.php](tests/assets/config.php))
+Create a Mapper and an entity. See 
+
+Create a Connection and register mappers
 
 ```php
 <?php
 
-use \Hawkbit\Application;
-use \Hawkbit\Persistence\PersistenceService;
-use \Hawkbit\Persistence\PersistenceServiceProvider;
+use Hawkbit\Storage\ConnectionManager;
+use Application\Persistence\Mappers\PostMapper;
 
-$app = new Application(require_once __DIR__ . '/config.php');
+$connection = ConnectionManager::create([
+    'url' => 'sqlite:///:memory:',
+    'memory' => 'true'
+]);
 
-$entityFactoryClass = \ContainerInteropDoctrine\EntityManagerFactory::class;
-
-$persistenceService = new PersistenceService([
-   PersistenceService::resolveFactoryAlias($entityFactoryClass) => [$entityFactoryClass]
-], $app);
-
-$app->register(new PersistenceServiceProvider($persistenceService));
+$connection->getMapperLocator()->register(PostMapper::class);
 ```
 
-## Examples
-
-### Full configuration
-
-A full configuration is available on [DASPRiD/container-interop-doctrine/example/full-config.php](https://github.com/DASPRiD/container-interop-doctrine/blob/master/example/full-config.php). 
-Refer to [container-interop-doctrine Documentation](https://github.com/DASPRiD/container-interop-doctrine) for further instructions on factories.
-
-### Persistence from Hawbit Application
+Load Mapper by mapper class or entity class
 
 ```php
 <?php
 
-/** @var \Hawkbit\Persistence\PersistenceServiceInterface $persistence */
-$persistence = $app[\Hawkbit\Persistence\PersistenceServiceInterface::class];
+use Application\Persistence\Mappers\PostMapper;
+use Application\Persistence\Entities\Post;
 
-$em = $persistence->getEntityManager();
+// load by mapper
+$mapper = $connection->loadMapper(PostMapper::class);
 
-// or with from specific connection
-$em = $persistence->getEntityManager('connectionname');
+// load by entity
+$mapper = $connection->loadMapper(Post::class);
 
 ```
 
-### Persistence in a Hawkbit controller
+## Data manipulation
 
-Access persistence service in controller. Hawbit is inject classes to controllers by default.
+### Create entity
 
 ```php
 <?php
 
-use \Hawkbit\Persistence\PersistenceServiceInterface;
+use Application\Persistence\Entities\Post;
 
-class MyController{
-    
-    /**
-     * @var \Hawkbit\Persistence\PersistenceServiceInterface 
-     */
-    private $persistence = null;
-    
-    public function __construct(PersistenceServiceInterface $persistence){
-        $this->persistence = $persistence;
-    }
-    
-    public function index(){
-        $em = $this->persistence->getEntityManager();
-        
-        // or with from specific connection
-        $em = $this->persistence->getEntityManager('connectionname');
-    }
-}
+$entity = new Post();
+
+$entity->setContent('cnt');
+
+/** @var Post $createdEntity */
+$mapper->create($entity);
+
 ```
+
+
+### Load entity
+
+```php
+<?php
+
+$entity = $mapper->find(['id' => 1]);
+
+```
+
+
+### Update entity
+
+```php
+<?php
+
+$entity->setContent('FOO');
+$mapper->update($entity);
+
+```
+
+### Delete entity
+
+```php
+<?php
+
+$mapper->delete($entity);
+
+```
+
+## Transactions
 
 ## Change log
 

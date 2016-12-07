@@ -32,6 +32,11 @@ final class Connection extends \Doctrine\DBAL\Connection
     private $mapperLocator;
 
     /**
+     * @var ObjectGraph
+     */
+    private $objectGraph;
+
+    /**
      * @return null|string
      */
     public function getPrefix()
@@ -74,6 +79,37 @@ final class Connection extends \Doctrine\DBAL\Connection
      */
     public function createUnitOfWork(){
         return new UnitOfWork($this);
+    }
+
+    /**
+     * @return ObjectGraph
+     */
+    public function getObjectGraph(){
+        if(null === $this->objectGraph){
+            $this->objectGraph = new ObjectGraph($this);
+        }
+        return $this->objectGraph;
+    }
+
+    /**
+     * @return array
+     */
+    public function getIdentityStateGraph(){
+        $mappers = $this->getMapperLocator()->getMapperMap();
+        $objectGraph = $this->getObjectGraph();
+        $graph = [];
+
+        foreach ($mappers as $mapper){
+            $identities = $mapper->getIdentityMap()->toArray();
+
+            foreach ($identities as $id => $object){
+                $identities[$id] = $objectGraph->getState($object);
+            }
+
+            $graph[$mapper->getEntityClass()] = $identities;
+        }
+
+        return $graph;
     }
 
 }

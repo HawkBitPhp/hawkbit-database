@@ -12,6 +12,7 @@ namespace Hawkbit\Storage;
 use Doctrine\Common\Inflector\Inflector;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Types\Type;
 
 abstract class AbstractMapper implements Mapper
 {
@@ -107,8 +108,6 @@ abstract class AbstractMapper implements Mapper
     {
         return $this->identityMap;
     }
-
-
 
     /**
      * Get entity class
@@ -279,6 +278,12 @@ abstract class AbstractMapper implements Mapper
 
         $set = [];
         foreach ($recordSet as $record) {
+//            if(isset($record[$this->getLastInsertIdReference()])){
+//                if($this->getIdentityMap()->hasId($record[$this->getLastInsertIdReference()])){
+//                    $set[] = $this->getIdentityMap()->getObject($record[$this->getLastInsertIdReference()]);
+//                    continue;
+//                }
+//            }
             $set[] = $this->map($record);
         }
 
@@ -319,6 +324,7 @@ abstract class AbstractMapper implements Mapper
         $result = $query->execute();
 
         $this->getIdentityMap()->removeId($data[$this->getLastInsertIdReference()]);
+        $this->getConnection()->getObjectGraph()->remove($entity);
 
         return $result;
     }
@@ -350,6 +356,8 @@ abstract class AbstractMapper implements Mapper
             $this->getIdentityMap()->set($data[$this->getLastInsertIdReference()], $entity);
         }
 
+        $this->getConnection()->getObjectGraph()->add($entity);
+
         return $entity;
     }
 
@@ -359,31 +367,37 @@ abstract class AbstractMapper implements Mapper
      */
     public function update($entity)
     {
-        $keys = $this->getPrimaryKey();
         $columns = $this->getColumns();
-        $expression = [];
         $data = $this->extract($entity);
-
-        // extract primary keys and pass to where condition
         $query = $this->gateway->update();
-        $expressionBuilder = $query->expr();
-        foreach ($keys as $key) {
-            if (!isset($data[$key])) {
-                continue;
-            }
-            unset($data[$key]);
-            $expression[] = $expressionBuilder->eq($key, $query->createPositionalParameter($data[$key]));
-        }
-        $query->where(call_user_func_array([$expressionBuilder, 'andX'], $expression));
 
         // set values
         foreach ($data as $key => $value) {
-            $type = isset($columns[$key]) ? $columns[$key]->getType()->getName() : \PDO::PARAM_STR;
+            $type = isset($columns[$key]) ? $columns[$key]->getType()->getName() : Type::STRING;
             $query->set($key, $query->createPositionalParameter($value, $type));
         }
 
+        // extract primary keys and pass to where condition
+        $expressionBuilder = $query->expr();
+        $expression = [];
+        $keys = $this->getPrimaryKey();
+
+        // build condition from primary key
+        foreach ($keys as $key) {
+            $type = isset($columns[$key]) ? $columns[$key]->getType()->getName() : Type::STRING;
+            if (!isset($data[$key])) {
+                continue;
+            }
+            $expression[] = $expressionBuilder->eq($key, $query->createPositionalParameter($data[$key], $type));
+        }
+
+        // build and execute condition
+        $query->where(call_user_func_array([$expressionBuilder, 'andX'], $expression));
         $query->execute();
+
+        // update identity
         $this->getIdentityMap()->set($data[$this->getLastInsertIdReference()], $entity);
+        $this->getConnection()->getObjectGraph()->modify($entity);
 
         // we don't need to update entity data
         return $entity;
@@ -410,7 +424,6 @@ abstract class AbstractMapper implements Mapper
      */
     protected function map($data, $entity = null)
     {
-
         // process entity
         $columns = $this->getColumns();
         if (false === $this->isEntity($entity)) {

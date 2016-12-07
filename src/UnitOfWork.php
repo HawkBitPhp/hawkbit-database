@@ -81,6 +81,13 @@ final class UnitOfWork
      */
     public function update($object)
     {
+        $mapper = $this->connection->loadMapper($object);
+        $data = $mapper->getHydrator()->extract($object);
+
+        if(isset($data[$mapper->getLastInsertIdReference()])){
+            $mapper->getIdentityMap()->set($data[$mapper->getLastInsertIdReference()], $object);
+        }
+
         $this->updatedObjects[ spl_object_hash($object) ] = $object;
     }
     /**
@@ -103,6 +110,7 @@ final class UnitOfWork
         if ($this->isNew($object)) {
             throw new \InvalidArgumentException('Cannot register as new, object is already marked as new.');
         }
+
         $this->newObjects[ spl_object_hash($object) ] = $object;
     }
     /**
@@ -110,6 +118,7 @@ final class UnitOfWork
      */
     public function delete($object)
     {
+        $this->connection->loadMapper($object)->getIdentityMap()->removeObject($object);
         $this->deletedObjects[ spl_object_hash($object) ] = $object;
     }
     /**

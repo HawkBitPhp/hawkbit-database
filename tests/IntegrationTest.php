@@ -8,19 +8,12 @@
 
 namespace Hawkbit\Storage\Tests;
 
-
-use ContainerInteropDoctrine\EntityManagerFactory;
-use Doctrine\ORM\EntityManagerInterface;
-use Hawkbit\Application;
-use Hawkbit\Persistence\PersistenceService;
-use Hawkbit\Persistence\PersistenceServiceInterface;
-use Hawkbit\Persistence\PresentationServiceProvider;
+use Doctrine\DBAL\Types\Type;
+use Hawkbit\Storage\AbstractMapper;
 use Hawkbit\Storage\Connection;
 use Hawkbit\Storage\ConnectionManager;
 use Hawkbit\Storage\Tests\Stubs\PostEntity;
 use Hawkbit\Storage\Tests\Stubs\PostMapper;
-use League\Plates\Engine;
-use org\bovigo\vfs\vfsStream;
 
 class IntegrationTest extends \PHPUnit_Framework_TestCase
 {
@@ -43,7 +36,7 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
 
         $connection->getMapperLocator()->register(PostMapper::class);
 
-        $connection->exec('CREATE TABLE post (id int, title VARCHAR(255), content TEXT, date DATETIME DEFAULT CURRENT_DATE )');
+        $connection->exec('CREATE TABLE post (id INTEGER PRIMARY KEY, content TEXT)');
 
         $this->connection = $connection;
     }
@@ -53,6 +46,8 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
     {
         $connection = $this->connection;
         $entity = new PostEntity();
+
+        /** @var PostMapper $mapper */
         $mapper = $connection->loadMapper($entity);
 
         $this->assertNotEmpty($mapper->getPrimaryKey());
@@ -64,17 +59,44 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('id', $mapper->getLastInsertIdReference());
 
         $entity->setContent('cnt');
+        $this->assertEquals(null, $entity->getId());
 
         /** @var PostEntity $createdEntity */
         $createdEntity = $mapper->create($entity);
-//        $mapper->find();
+        $graph = $connection->getIdentityStateGraph();
 
-        $sameCreated = $createdEntity === $entity;
+        $this->assertEquals($connection->lastInsertId(), $entity->getId());
+        $this->assertEquals($entity, $createdEntity);
+        $this->assertEquals($createdEntity->getContent(), 'cnt');
+        $this->assertEquals($entity->getContent(), 'cnt');
+        $this->assertEquals($entity->getId(), $createdEntity->getId());
+        $this->assertInternalType('integer', $entity->getId());
+        $this->assertEquals(1, $entity->getId());
 
-        $foundEntity = $mapper->find(['id' => $createdEntity->getId()]);
+        $foundEntity = $mapper->find(['id' => $entity->getId()]);
 
-        $sameFound = $entity === $foundEntity;
+        $this->assertEquals($entity, $foundEntity);
+        $this->assertEquals($entity->getId(), $foundEntity->getId());
 
-        $this->assertEquals($connection->lastInsertId(), $createdEntity->getId());
+        $entity->setContent('FOO');
+
+        /** @var PostEntity $updatedEntity */
+        $updatedEntity = $mapper->update($entity);
+        $graph = $connection->getIdentityStateGraph();
+
+        $this->assertEquals($entity, $updatedEntity);
+        $this->assertEquals($updatedEntity->getContent(), 'FOO');
+        $this->assertEquals($entity->getContent(), 'FOO');
+        $this->assertEquals($entity->getId(), $updatedEntity->getId());
+        $this->assertInternalType('integer', $entity->getId());
+        $this->assertEquals(1, $entity->getId());
+
+        $mapper->delete($entity);
+
+        $graph = $connection->getIdentityStateGraph();
+
+        if(true){
+
+        }
     }
 }
