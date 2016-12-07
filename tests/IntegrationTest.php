@@ -63,7 +63,7 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
 
         /** @var PostEntity $createdEntity */
         $createdEntity = $mapper->create($entity);
-        $graph = $connection->getIdentityStateGraph();
+        $graph = $connection->getEntityStateGraph();
 
         $this->assertEquals($connection->lastInsertId(), $entity->getId());
         $this->assertEquals($entity, $createdEntity);
@@ -82,7 +82,7 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
 
         /** @var PostEntity $updatedEntity */
         $updatedEntity = $mapper->update($entity);
-        $graph = $connection->getIdentityStateGraph();
+        $graph = $connection->getEntityStateGraph();
 
         $this->assertEquals($entity, $updatedEntity);
         $this->assertEquals($updatedEntity->getContent(), 'FOO');
@@ -93,7 +93,7 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
 
         $mapper->delete($entity);
 
-        $graph = $connection->getIdentityStateGraph();
+        $graph = $connection->getEntityStateGraph();
 
         if(true){
 

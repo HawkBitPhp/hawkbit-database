@@ -170,23 +170,4 @@ class MapperLocator
         return '\\' . ltrim($mapper, '\\') instanceof Mapper;
     }
 
-    /**
-     * INTERNAL: Mapping between entities and mappers
-     * @return array
-     */
-    public function getEntityMapperMap()
-    {
-        return $this->entityMapperMap;
-    }
-
-    /**
-     * INTERNAL: An in memory cache of mapper objects
-     *
-     * @return Mapper[]
-     */
-    public function getMapperMap()
-    {
-        return $this->mapperMap;
-    }
-
 }

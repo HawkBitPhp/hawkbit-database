@@ -37,6 +37,11 @@ final class Connection extends \Doctrine\DBAL\Connection
     private $objectGraph;
 
     /**
+     * @var IdentityMap[]
+     */
+    private $identityMap;
+
+    /**
      * @return null|string
      */
     public function getPrefix()
@@ -74,6 +79,27 @@ final class Connection extends \Doctrine\DBAL\Connection
         return $this->mapperLocator;
     }
 
+
+    /**
+     * @param $classOrObject
+     * @return IdentityMap
+     */
+    public function loadIdentityMap($classOrObject)
+    {
+        if (is_object($classOrObject)) {
+            $classOrObject = get_class($classOrObject);
+        }
+
+        if (!is_string($classOrObject)) {
+            throw new \InvalidArgumentException('Invalid data type ' . gettype($classOrObject));
+        }
+        if(!isset($this->identityMap[$classOrObject])){
+            $this->identityMap[$classOrObject] = new IdentityMap();
+        }
+
+        return $this->identityMap[$classOrObject];
+    }
+
     /**
      * @return UnitOfWork
      */
@@ -94,19 +120,16 @@ final class Connection extends \Doctrine\DBAL\Connection
     /**
      * @return array
      */
-    public function getIdentityStateGraph(){
-        $mappers = $this->getMapperLocator()->getMapperMap();
+    public function getEntityStateGraph(){
         $objectGraph = $this->getObjectGraph();
         $graph = [];
 
-        foreach ($mappers as $mapper){
-            $identities = $mapper->getIdentityMap()->toArray();
+        foreach ($this->identityMap as $identityMap){
+            $identities = $identityMap->toArray();
 
             foreach ($identities as $id => $object){
-                $identities[$id] = $objectGraph->getState($object);
+                $graph[get_class($object)][$id] = $objectGraph->getState($object);
             }
-
-            $graph[$mapper->getEntityClass()] = $identities;
         }
 
         return $graph;

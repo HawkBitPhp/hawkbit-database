@@ -57,6 +57,9 @@ class ObjectGraph
         return self::UNHANDLED;
     }
 
+    /**
+     * @return mixed
+     */
     public function toArray(){
         $copy = [];
 

@@ -74,7 +74,7 @@ abstract class AbstractMapper implements Mapper
         $this->doDefine();
 
         $this->gateway = new Gateway($this->connection, $this->getTableName());
-        $this->identityMap = new IdentityMap();
+        $this->identityMap = $connection->loadIdentityMap($this->getEntityClass());
     }
 
     /**
