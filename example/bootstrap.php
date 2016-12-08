@@ -2,7 +2,7 @@
 
 use Application\Persistence\Entities\Post;
 use Application\Persistence\Mappers\PostMapper;
-use Hawkbit\Storage\ConnectionManager;
+use Hawkbit\Database\ConnectionManager;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 

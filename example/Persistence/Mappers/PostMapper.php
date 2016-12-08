@@ -12,7 +12,7 @@ namespace Application\Persistence\Mappers;
 use Application\Persistence\Entities\Post;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types\Type;
-use Hawkbit\Storage\AbstractMapper;
+use Hawkbit\Database\AbstractMapper;
 
 class PostMapper extends AbstractMapper
 {

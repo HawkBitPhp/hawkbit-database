@@ -6,7 +6,7 @@
  * Time: 15:25
  */
 
-namespace Hawkbit\Storage;
+namespace Hawkbit\Database;
 
 
 use Doctrine\Common\Inflector\Inflector;
@@ -167,8 +167,10 @@ abstract class AbstractMapper implements Mapper
      */
     final public function createEntity($id = null){
         $identityMap = $this->getIdentityMap();
-        if($identityMap->hasId($id)){
-            return $identityMap->getObject($id);
+        if(null !== $id){
+            if($identityMap->hasId($id)){
+                return $identityMap->getObject($id);
+            }
         }
         $class = $this->getEntityClass();
         return new $class;

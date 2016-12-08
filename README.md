@@ -59,7 +59,7 @@ Create a Connection and register mappers
 ```php
 <?php
 
-use Hawkbit\Storage\ConnectionManager;
+use Hawkbit\Database\ConnectionManager;
 use Application\Persistence\Mappers\PostMapper;
 
 $connection = ConnectionManager::create([

@@ -6,7 +6,7 @@
  * Time: 15:46
  */
 
-namespace Hawkbit\Storage;
+namespace Hawkbit\Database;
 
 
 final class UnitOfWork
@@ -33,6 +33,11 @@ final class UnitOfWork
     private $completed = [];
 
     /**
+     * @var \SplObjectStorage
+     */
+    private $completedState = null;
+
+    /**
      * @var Connection
      */
     private $connection;
@@ -50,6 +55,7 @@ final class UnitOfWork
     public function __construct(Connection $connection)
     {
         $this->connection = $connection;
+        $this->completedState = new \SplObjectStorage();
     }
 
     /**
@@ -81,23 +87,23 @@ final class UnitOfWork
      */
     public function update($object)
     {
-
         if ($this->isDeleted($object)) {
-            throw new \InvalidArgumentException('Cannot register as new, object is marked for deletion.');
+            throw new \InvalidArgumentException('Cannot register as updated, object is marked for deletion.');
         }
         if ($this->isUpdated($object)) {
-            throw new \InvalidArgumentException('Cannot register as new, object is marked as updated.');
+            throw new \InvalidArgumentException('Cannot register as updated, object is already marked as updated.');
         }
 
         $mapper = $this->connection->loadMapper($object);
         $data = $mapper->getHydrator()->extract($object);
 
-        if(isset($data[$mapper->getLastInsertIdReference()])){
+        if (isset($data[$mapper->getLastInsertIdReference()])) {
             $mapper->getIdentityMap()->set($data[$mapper->getLastInsertIdReference()], $object);
         }
 
-        $this->updatedObjects[ spl_object_hash($object) ] = $object;
+        $this->updatedObjects[spl_object_hash($object)] = $object;
     }
+
     /**
      * Register an object as dirty. This is valid unless:
      * - The object is registered to be removed
@@ -120,69 +126,84 @@ final class UnitOfWork
         }
 
         $this->connection->loadMapper($object)->getIdentityMap()->set(0, $object);
-        $this->newObjects[ spl_object_hash($object) ] = $object;
+        $this->newObjects[spl_object_hash($object)] = $object;
     }
+
     /**
      * @param $object
      */
     public function delete($object)
     {
-        $this->connection->loadMapper($object)->getIdentityMap()->removeObject($object);
-        $this->deletedObjects[ spl_object_hash($object) ] = $object;
+        if ($this->isDeleted($object)) {
+            throw new \InvalidArgumentException('Cannot register as deleted, object is already marked for deletion.');
+        }
+
+        $mapper = $this->connection->loadMapper($object);
+        $data = $mapper->getHydrator()->extract($object);
+
+        if (isset($data[$mapper->getLastInsertIdReference()])) {
+            $mapper->getIdentityMap()->remove($data[$mapper->getLastInsertIdReference()], $object);
+        }
+
+        $this->deletedObjects[spl_object_hash($object)] = $object;
     }
+
     /**
      * @param $object
      * @return bool
      */
     public function isUpdated($object)
     {
-        return isset($this->updatedObjects[ spl_object_hash($object) ]);
+        return isset($this->updatedObjects[spl_object_hash($object)]);
     }
+
     /**
      * @param $object
      * @return bool
      */
     public function isNew($object)
     {
-        return isset($this->newObjects[ spl_object_hash($object) ]);
+        return isset($this->newObjects[spl_object_hash($object)]);
     }
+
     /**
      * @param $object
      * @return bool
      */
     public function isDeleted($object)
     {
-        return isset($this->deletedObjects[ spl_object_hash($object) ]);
+        return isset($this->deletedObjects[spl_object_hash($object)]);
     }
 
     /**
      * @return bool
      * @throws \Exception
      */
-    public function commit(){
+    public function commit()
+    {
 
         $connection = $this->connection;
 
-        try{
+        try {
             $connection->beginTransaction();
 
             // insert
-            $this->process('new',$this->newObjects, function($entity) {
+            $this->process(IdentityMap::ADDED, $this->newObjects, function ($entity) {
                 return $this->connection->loadMapper($entity)->create($entity);
             });
             // update
-            $this->process('updated',$this->updatedObjects, function($entity) {
+            $this->process(IdentityMap::MODIFIED, $this->updatedObjects, function ($entity) {
                 return $this->connection->loadMapper($entity)->update($entity);
             });
             // delete
-            $this->process('deleted',$this->deletedObjects, function($entity) {
+            $this->process(IdentityMap::REMOVED, $this->deletedObjects, function ($entity) {
                 return $this->connection->loadMapper($entity)->delete($entity);
             });
 
             $connection->commit();
             return true;
 
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             $connection->rollBack();
             $this->exception = $e;
             return false;
@@ -190,13 +211,17 @@ final class UnitOfWork
     }
 
     /**
+     * @param $label
      * @param $entities
-     * @param $task
+     * @param callable $task
      */
-    protected function process($label, $entities, callable $task){
-        foreach ($entities as $entity){
+    protected function process($label, &$entities, callable $task)
+    {
+        foreach ($entities as $key => $entity) {
             $task($entity);
-            $this->completed[$label][$entity];
+            $this->completedState[$entity] = $label;
+            $this->completed[] = $entity;
+            unset($entities[$key]);
         }
     }
 

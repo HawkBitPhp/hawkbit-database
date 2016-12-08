@@ -6,7 +6,7 @@
  * Time: 07:11
  */
 
-namespace Hawkbit\Storage;
+namespace Hawkbit\Database;
 
 
 class MapperLocator

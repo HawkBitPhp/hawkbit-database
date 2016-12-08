@@ -6,12 +6,12 @@
  * Time: 10:05
  */
 
-namespace Hawkbit\Storage\Tests\Stubs;
+namespace Hawkbit\Database\Tests\Stubs;
 
 
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types\Type;
-use Hawkbit\Storage\AbstractMapper;
+use Hawkbit\Database\AbstractMapper;
 
 class PostMapper extends AbstractMapper
 {

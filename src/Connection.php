@@ -6,7 +6,7 @@
  * Time: 14:04
  */
 
-namespace Hawkbit\Storage;
+namespace Hawkbit\Database;
 
 use Doctrine\DBAL\Driver;
 
@@ -30,11 +30,6 @@ final class Connection extends \Doctrine\DBAL\Connection
      * @var MapperLocator
      */
     private $mapperLocator;
-
-    /**
-     * @var EntityStates
-     */
-    private $objectGraph;
 
     /**
      * @var IdentityMap[]
@@ -105,16 +100,6 @@ final class Connection extends \Doctrine\DBAL\Connection
      */
     public function createUnitOfWork(){
         return new UnitOfWork($this);
-    }
-
-    /**
-     * @return EntityStates
-     */
-    public function getObjectGraph(){
-        if(null === $this->objectGraph){
-            $this->objectGraph = new EntityStates($this);
-        }
-        return $this->objectGraph;
     }
 
 }

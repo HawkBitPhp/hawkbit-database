@@ -6,7 +6,7 @@
  * Time: 07:35
  */
 
-namespace Hawkbit\Storage;
+namespace Hawkbit\Database;
 
 
 use ArrayObject;
@@ -89,13 +89,13 @@ final class IdentityMap
     {
         if ($this->hasObject($object)) {
             $this->modify($object);
-        }else{
+        } else {
             $this->add($object);
         }
 
         // remove old id's
-        if($this->hasObject($object)){
-            if($this->getId($object) !== $id){
+        if ($this->hasObject($object)) {
+            if ($this->getId($object) !== $id) {
                 $this->removeId($id);
             }
         }
@@ -156,23 +156,31 @@ final class IdentityMap
     /**
      * Remove link from object to id
      * @param $object
+     * @return bool
      */
     private function removeObject($object)
     {
         if ($this->hasObject($object)) {
             unset($this->objectToId[$object]);
+            return true;
         }
+
+        return false;
     }
 
     /**
      * Remove link from id to object
      * @param $id
+     * @return bool
      */
     private function removeId($id)
     {
         if ($this->hasId($id)) {
             unset($this->idToObject[$id]);
+            return true;
         }
+
+        return false;
     }
 
     /**
@@ -180,13 +188,17 @@ final class IdentityMap
      * @param $id
      * @param $object
      */
-    public function remove($id, $object){
-        $this->removeId($id);
-        $this->removeObject($object);
-        $this->removed[$id] = $object;
+    public function remove($id, $object)
+    {
+        if (
+            $this->removeId($id) &&
+            $this->removeObject($object)
+        ) {
+            $this->removed[$id] = $object;
 
-        //update object state
-        $this->delete($object);
+            //update object state
+            $this->delete($object);
+        }
     }
 
     /**

@@ -9,7 +9,7 @@
 namespace Hawkbit\Database\Tests\Stubs;
 
 
-class PostEntity
+class UserEntity
 {
 
     /**
@@ -20,7 +20,7 @@ class PostEntity
     /**
      * @var string
      */
-    private $content = '';
+    private $username = '';
 
     /**
      * @return int
@@ -32,7 +32,7 @@ class PostEntity
 
     /**
      * @param int $id
-     * @return PostEntity
+     * @return UserEntity
      */
     public function setId($id)
     {
@@ -43,18 +43,18 @@ class PostEntity
     /**
      * @return string
      */
-    public function getContent()
+    public function getUsername()
     {
-        return $this->content;
+        return $this->username;
     }
 
     /**
-     * @param string $content
-     * @return PostEntity
+     * @param string $username
+     * @return UserEntity
      */
-    public function setContent($content)
+    public function setUsername($username)
     {
-        $this->content = $content;
+        $this->username = $username;
         return $this;
     }
 

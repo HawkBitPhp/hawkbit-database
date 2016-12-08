@@ -6,7 +6,7 @@
  * Time: 12:11
  */
 
-namespace Hawkbit\Storage;
+namespace Hawkbit\Database;
 
 
 use Doctrine\DBAL\Schema\Column;

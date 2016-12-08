@@ -28,12 +28,12 @@
   },
   "autoload": {
     "psr-4": {
-      "Hawkbit\\Storage\\": "src/"
+      "Hawkbit\\Database\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "Hawkbit\\Storage\\Tests\\": "tests/"
+      "Hawkbit\\Database\\Tests\\": "tests/"
     }
   },
   "scripts": {

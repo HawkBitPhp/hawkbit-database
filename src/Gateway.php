@@ -6,11 +6,11 @@
  * Time: 10:29
  */
 
-namespace Hawkbit\Storage;
+namespace Hawkbit\Database;
 
 /**
  * Grant low-level access to data base
- * @package Hawkbit\Storage
+ * @package Hawkbit\Database
  */
 final class Gateway
 {

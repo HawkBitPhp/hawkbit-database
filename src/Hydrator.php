@@ -6,18 +6,18 @@
  * Time: 13:44
  */
 
-namespace Hawkbit\Storage;
+namespace Hawkbit\Database;
 
 
-use Hawkbit\Storage\Support\MapperStore;
-use Hawkbit\Storage\Support\ReflectionStore;
+use Hawkbit\Database\Support\MapperStore;
+use Hawkbit\Database\Support\ReflectionStore;
 
 /**
  * Class Hydrator
  *
  * Hydrate or extract from object properties
  *
- * @package Hawkbit\Storage
+ * @package Hawkbit\Database
  */
 class Hydrator
 {

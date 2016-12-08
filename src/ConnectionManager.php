@@ -6,7 +6,7 @@
  * Time: 14:00
  */
 
-namespace Hawkbit\Storage;
+namespace Hawkbit\Database;
 
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\DriverManager;
@@ -40,7 +40,7 @@ final class ConnectionManager
      * Get connection manager instance to share
      * connections between different instances.
      *
-     * @return \Hawkbit\Storage\ConnectionManager
+     * @return \Hawkbit\Database\ConnectionManager
      */
     public static function getInstance()
     {
