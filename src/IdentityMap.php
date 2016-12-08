@@ -13,8 +13,13 @@ use ArrayObject;
 use OutOfBoundsException;
 use SplObjectStorage;
 
-class IdentityMap
+final class IdentityMap
 {
+
+    const ADDED = 'added';
+    const MODIFIED = 'modified';
+    const REMOVED = 'removed';
+    const UNHANDLED = 'unhandled';
 
     /**
      * @var ArrayObject
@@ -26,11 +31,54 @@ class IdentityMap
      */
     protected $objectToId;
 
+    /**
+     * @var ArrayObject
+     */
+    private $removed;
+
     public function __construct()
     {
         $this->objectToId = new SplObjectStorage();
         $this->idToObject = new ArrayObject();
         $this->removed = new ArrayObject();
+        $this->objectStorage = new \SplObjectStorage();
+    }
+
+    /**
+     * @param $object
+     */
+    private function add($object)
+    {
+        $this->objectStorage[$object] = self::ADDED;
+    }
+
+    /**
+     * @param $object
+     */
+    private function modify($object)
+    {
+        $this->objectStorage[$object] = self::MODIFIED;
+    }
+
+    /**
+     * @param $object
+     */
+    private function delete($object)
+    {
+        $this->objectStorage[$object] = self::REMOVED;
+    }
+
+    /**
+     * @param $object
+     * @return object|string
+     */
+    public function getState($object)
+    {
+        if (isset($this->objectStorage[$object])) {
+            return $this->objectStorage[$object];
+        }
+
+        return self::UNHANDLED;
     }
 
     /**
@@ -39,6 +87,19 @@ class IdentityMap
      */
     public function set($id, $object)
     {
+        if ($this->hasObject($object)) {
+            $this->modify($object);
+        }else{
+            $this->add($object);
+        }
+
+        // remove old id's
+        if($this->hasObject($object)){
+            if($this->getId($object) !== $id){
+                $this->removeId($id);
+            }
+        }
+
         $this->idToObject[$id] = $object;
         $this->objectToId[$object] = $id;
     }
@@ -93,38 +154,72 @@ class IdentityMap
     }
 
     /**
+     * Remove link from object to id
      * @param $object
      */
-    public function removeObject($object)
+    private function removeObject($object)
     {
-        if (false === $this->hasObject($object)) {
-            $id = $this->getId($object);
+        if ($this->hasObject($object)) {
             unset($this->objectToId[$object]);
-            unset($this->idToObject[$id]);
-            $this->removed[$id] = $object;
         }
     }
 
     /**
+     * Remove link from id to object
      * @param $id
      */
-    public function removeId($id)
+    private function removeId($id)
     {
         if ($this->hasId($id)) {
-            $object = $this->getObject($id);
-            unset($this->objectToId[$object]);
             unset($this->idToObject[$id]);
-            $this->removed[$id] = $object;
         }
+    }
+
+    /**
+     * remove object by id
+     * @param $id
+     * @param $object
+     */
+    public function remove($id, $object){
+        $this->removeId($id);
+        $this->removeObject($object);
+        $this->removed[$id] = $object;
+
+        //update object state
+        $this->delete($object);
     }
 
     /**
      * @return array
      */
-    public function toArray()
+    public function getModified()
     {
-        $modified = $this->idToObject->getArrayCopy();
-        $removed = $this->removed->getArrayCopy();
-        return array_replace($modified, $removed);
+        return $this->idToObject->getArrayCopy();
+    }
+
+    /**
+     * @return array
+     */
+    public function getRemoved()
+    {
+        return $this->removed->getArrayCopy();
+    }
+
+    /**
+     * @return array
+     */
+    public function getGraph()
+    {
+        $graph = [];
+
+        $modified = $this->getModified();
+        $removed = $this->getRemoved();
+        $identities = array_replace($modified, $removed);
+
+        foreach ($identities as $id => $object) {
+            $graph[get_class($object)][$id] = $this->getState($object);
+        }
+
+        return $graph;
     }
 }

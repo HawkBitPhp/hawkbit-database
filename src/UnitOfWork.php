@@ -81,6 +81,14 @@ final class UnitOfWork
      */
     public function update($object)
     {
+
+        if ($this->isDeleted($object)) {
+            throw new \InvalidArgumentException('Cannot register as new, object is marked for deletion.');
+        }
+        if ($this->isUpdated($object)) {
+            throw new \InvalidArgumentException('Cannot register as new, object is marked as updated.');
+        }
+
         $mapper = $this->connection->loadMapper($object);
         $data = $mapper->getHydrator()->extract($object);
 
@@ -105,12 +113,13 @@ final class UnitOfWork
             throw new \InvalidArgumentException('Cannot register as new, object is marked for deletion.');
         }
         if ($this->isUpdated($object)) {
-            throw new \InvalidArgumentException('Cannot register as new, object is marked as dirty.');
+            throw new \InvalidArgumentException('Cannot register as new, object is marked as updated.');
         }
         if ($this->isNew($object)) {
             throw new \InvalidArgumentException('Cannot register as new, object is already marked as new.');
         }
 
+        $this->connection->loadMapper($object)->getIdentityMap()->set(0, $object);
         $this->newObjects[ spl_object_hash($object) ] = $object;
     }
     /**

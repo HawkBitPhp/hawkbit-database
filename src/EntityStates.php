@@ -8,7 +8,7 @@
 
 namespace Hawkbit\Storage;
 
-class ObjectGraph
+final class EntityStates
 {
 
     const ADDED = 'added';
@@ -67,7 +67,7 @@ class ObjectGraph
             $copy[get_class($object)] = $state;
         }
 
-        return $this->objectStorage->getInfo();
+        return $copy;
     }
 
 }

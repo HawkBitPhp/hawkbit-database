@@ -8,8 +8,6 @@
 
 namespace Hawkbit\Storage\Tests;
 
-use Doctrine\DBAL\Types\Type;
-use Hawkbit\Storage\AbstractMapper;
 use Hawkbit\Storage\Connection;
 use Hawkbit\Storage\ConnectionManager;
 use Hawkbit\Storage\Tests\Stubs\PostEntity;
@@ -63,7 +61,6 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
 
         /** @var PostEntity $createdEntity */
         $createdEntity = $mapper->create($entity);
-        $graph = $connection->getEntityStateGraph();
 
         $this->assertEquals($connection->lastInsertId(), $entity->getId());
         $this->assertEquals($entity, $createdEntity);
@@ -82,7 +79,6 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
 
         /** @var PostEntity $updatedEntity */
         $updatedEntity = $mapper->update($entity);
-        $graph = $connection->getEntityStateGraph();
 
         $this->assertEquals($entity, $updatedEntity);
         $this->assertEquals($updatedEntity->getContent(), 'FOO');
@@ -92,8 +88,6 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(1, $entity->getId());
 
         $mapper->delete($entity);
-
-        $graph = $connection->getEntityStateGraph();
 
         if(true){
 

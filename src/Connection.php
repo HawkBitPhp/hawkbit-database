@@ -32,7 +32,7 @@ final class Connection extends \Doctrine\DBAL\Connection
     private $mapperLocator;
 
     /**
-     * @var ObjectGraph
+     * @var EntityStates
      */
     private $objectGraph;
 
@@ -108,31 +108,13 @@ final class Connection extends \Doctrine\DBAL\Connection
     }
 
     /**
-     * @return ObjectGraph
+     * @return EntityStates
      */
     public function getObjectGraph(){
         if(null === $this->objectGraph){
-            $this->objectGraph = new ObjectGraph($this);
+            $this->objectGraph = new EntityStates($this);
         }
         return $this->objectGraph;
-    }
-
-    /**
-     * @return array
-     */
-    public function getEntityStateGraph(){
-        $objectGraph = $this->getObjectGraph();
-        $graph = [];
-
-        foreach ($this->identityMap as $identityMap){
-            $identities = $identityMap->toArray();
-
-            foreach ($identities as $id => $object){
-                $graph[get_class($object)][$id] = $objectGraph->getState($object);
-            }
-        }
-
-        return $graph;
     }
 
 }

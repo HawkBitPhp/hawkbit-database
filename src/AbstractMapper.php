@@ -323,8 +323,7 @@ abstract class AbstractMapper implements Mapper
 
         $result = $query->execute();
 
-        $this->getIdentityMap()->removeId($data[$this->getLastInsertIdReference()]);
-        $this->getConnection()->getObjectGraph()->remove($entity);
+        $this->getIdentityMap()->remove($data[$this->getLastInsertIdReference()], $entity);
 
         return $result;
     }
@@ -356,14 +355,12 @@ abstract class AbstractMapper implements Mapper
             $this->getIdentityMap()->set($data[$this->getLastInsertIdReference()], $entity);
         }
 
-        $this->getConnection()->getObjectGraph()->add($entity);
-
         return $entity;
     }
 
     /**
      * @param $entity
-     * @return mixed
+     * @return object
      */
     public function update($entity)
     {
@@ -397,7 +394,6 @@ abstract class AbstractMapper implements Mapper
 
         // update identity
         $this->getIdentityMap()->set($data[$this->getLastInsertIdReference()], $entity);
-        $this->getConnection()->getObjectGraph()->modify($entity);
 
         // we don't need to update entity data
         return $entity;
@@ -407,7 +403,7 @@ abstract class AbstractMapper implements Mapper
      * Save new or existing entity
      *
      * @param object[]|object $entity
-     * @return int
+     * @return object
      */
     public function save($entity)
     {
