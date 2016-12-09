@@ -182,6 +182,8 @@ final class UnitOfWork
     {
 
         $connection = $this->connection;
+        $this->processed = [];
+        $this->modified = [];
 
         try {
             $connection->beginTransaction();

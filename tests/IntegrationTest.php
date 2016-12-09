@@ -174,8 +174,32 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
             $this->assertEquals($foundResult['username'], $foundUserEntity->getUsername());
         }
 
+        $firstPost = $postMapper->find(['id' => 1]);
+        /** @var PostEntity $secondPost */
+        $secondPost = $postMapper->find(['id' => 2]);
+        $secondPost->setContent('Bam');
+        $thirdPost = new PostEntity();
+        $thirdPost->setContent('FooBar');
+
+        $firstUser = $userMapper->find(['id' => 1]);
+        /** @var UserEntity $secondUser */
+        $secondUser = $userMapper->find(['id' => 2]);
+        $secondUser->setUsername('Andrew');
+        $thirdUser = new UserEntity();
+        $thirdUser->setUsername('Rudy');
+
+        $unitOfWork->delete($firstUser);
+        $unitOfWork->delete($firstPost);
+        $unitOfWork->update($secondUser);
+        $unitOfWork->update($secondPost);
+        $unitOfWork->create($thirdUser);
+        $unitOfWork->create($thirdPost);
+
+        $unitOfWork->commit();
+
         if(true){
 
         }
+
     }
 }
