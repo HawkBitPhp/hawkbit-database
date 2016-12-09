@@ -37,7 +37,10 @@ final class Gateway
     public function __construct(Connection $connection, $table, $alias = null)
     {
         $this->connection = $connection;
-        $this->table = $table;
+        $prefix = $connection->getPrefix();
+
+        // add prefix and reset prefix if prefix already set
+        $this->table = $prefix . ltrim($table, $prefix);
         $this->alias = $alias;
     }
 
