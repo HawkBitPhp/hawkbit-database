@@ -78,7 +78,7 @@ abstract class AbstractMapper implements Mapper
 
         $this->doDefine();
 
-        $this->gateway = new Gateway($this->connection, $this->getTableName());
+        $this->gateway = new Gateway($this->connection, $this->getTableName(), $this->getTableNameAlias());
         $this->identityMap = $connection->loadIdentityMap($this->getEntityClass());
     }
 
@@ -132,6 +132,14 @@ abstract class AbstractMapper implements Mapper
     final public function getTableName()
     {
         return $this->tableName;
+    }
+
+    /**
+     * @return string
+     */
+    final public function getTableNameAlias()
+    {
+        return $this->tableNameAlias;
     }
 
     /**
