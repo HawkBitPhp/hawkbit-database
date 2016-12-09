@@ -37,6 +37,11 @@ interface Mapper
     public function getTableName();
 
     /**
+     * @return string
+     */
+    public function getTableNameAlias();
+
+    /**
      * @return string[]
      */
     public function getPrimaryKey();

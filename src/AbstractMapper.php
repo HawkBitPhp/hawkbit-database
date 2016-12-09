@@ -28,6 +28,11 @@ abstract class AbstractMapper implements Mapper
     protected $tableName;
 
     /**
+     * @var string
+     */
+    protected $tableNameAlias;
+
+    /**
      * @var string[]
      */
     protected $primaryKey;
@@ -279,14 +284,20 @@ abstract class AbstractMapper implements Mapper
         }
 
         $set = [];
+        $identityMap = $this->getIdentityMap();
+
         foreach ($recordSet as $record) {
-//            if(isset($record[$this->getLastInsertIdReference()])){
-//                if($this->getIdentityMap()->hasId($record[$this->getLastInsertIdReference()])){
-//                    $set[] = $this->getIdentityMap()->getObject($record[$this->getLastInsertIdReference()]);
-//                    continue;
-//                }
-//            }
-            $set[] = $this->map($record);
+            $entity = null;
+            // fetch entity from identity map
+            // keeping object id
+            if(isset($record[$this->getLastInsertIdReference()])){
+                if($identityMap->hasId($record[$this->getLastInsertIdReference()])){
+                    $entity = $identityMap->getObject($record[$this->getLastInsertIdReference()]);
+                }
+            }
+
+            // map record to entity
+            $set[] = $this->map($record, $entity);
         }
 
         reset($set);
@@ -527,6 +538,10 @@ abstract class AbstractMapper implements Mapper
         //sanitize and validate table name
         if (empty($this->tableName)) {
             $this->tableName = Inflector::tableize(get_class($this->entityClass));
+        }
+        //sanitize and validate table name alias
+        if (empty($this->tableName)) {
+            $this->tableNameAlias = substr($this->tableName, 3);
         }
 
     }
