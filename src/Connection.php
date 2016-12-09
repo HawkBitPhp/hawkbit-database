@@ -56,7 +56,7 @@ final class Connection extends \Doctrine\DBAL\Connection
 
     /**
      * @param $entityOrMapper
-     * @return Mapper
+     * @return Mapper|AbstractMapper
      */
     public function loadMapper($entityOrMapper){
 

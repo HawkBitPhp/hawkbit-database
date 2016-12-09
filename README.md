@@ -1,4 +1,4 @@
-# Hawkbit Persistence
+# Hawkbit Database
 
 [![Latest Version on Packagist][ico-version]][link-packagist]
 [![Software License][ico-license]](LICENSE.md)
@@ -6,8 +6,7 @@
 [![Total Downloads][ico-downloads]][link-downloads]
 [![Coverage Status][ico-coveralls]][link-coveralls]
 
-Persistence layer for Hawkbit PSR-7 Micro PHP framework.
-Features unit of work, identity map, object graph, popo's and mapper. 
+Object orientated database handling with POPO's, unit of work, identity map and data mapper. 
 
 ## Install
 
@@ -39,7 +38,7 @@ require __DIR__ . '/vendor/autoload.php';
 
 ### Downloading .zip file
 
-This project is also available for download as a `.zip` file on GitHub. Visit the [releases page](https://github.com/hawkbit/persistence/releases), select the version you want, and click the "Source code (zip)" download button.
+This project is also available for download as a `.zip` file on GitHub. Visit the [releases page](https://github.com/hawkbit/database/releases), select the version you want, and click the "Source code (zip)" download button.
 
 ### Requirements
 
@@ -50,91 +49,9 @@ The following versions of PHP are supported by this version.
 * PHP 7.0
 * HHVM
 
-## Setup
+## Usage
 
-Create a Mapper and an entity. See 
-
-Create a Connection and register mappers
-
-```php
-<?php
-
-use Hawkbit\Database\ConnectionManager;
-use Application\Persistence\Mappers\PostMapper;
-
-$connection = ConnectionManager::create([
-    'url' => 'sqlite:///:memory:',
-    'memory' => 'true'
-]);
-
-$connection->getMapperLocator()->register(PostMapper::class);
-```
-
-Load Mapper by mapper class or entity class
-
-```php
-<?php
-
-use Application\Persistence\Mappers\PostMapper;
-use Application\Persistence\Entities\Post;
-
-// load by mapper
-$mapper = $connection->loadMapper(PostMapper::class);
-
-// load by entity
-$mapper = $connection->loadMapper(Post::class);
-
-```
-
-## Data manipulation
-
-### Create entity
-
-```php
-<?php
-
-use Application\Persistence\Entities\Post;
-
-$entity = new Post();
-
-$entity->setContent('cnt');
-
-/** @var Post $createdEntity */
-$mapper->create($entity);
-
-```
-
-
-### Load entity
-
-```php
-<?php
-
-$entity = $mapper->find(['id' => 1]);
-
-```
-
-
-### Update entity
-
-```php
-<?php
-
-$entity->setContent('FOO');
-$mapper->update($entity);
-
-```
-
-### Delete entity
-
-```php
-<?php
-
-$mapper->delete($entity);
-
-```
-
-## Transactions
+View [Examples](examples) for usage.
 
 ## Change log
 
@@ -157,17 +74,17 @@ If you discover any security related issues, please email <mjls@web.de> instead 
 ## Credits
 
 - [Marco Bunge](https://github.com/mbunge)
-- [All contributors](https://github.com/hawkbit/persistence/graphs/contributors)
+- [All contributors](https://github.com/hawkbit/database/graphs/contributors)
 
 ## License
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
 
-[ico-version]: https://img.shields.io/packagist/v/hawkbit/persistence.svg?style=flat-square
+[ico-version]: https://img.shields.io/packagist/v/hawkbit/database.svg?style=flat-square
 [ico-license]: https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square
-[ico-travis]: https://img.shields.io/travis/HawkBitPhp/hawkbit-persistence/master.svg?style=flat-square
-[ico-downloads]: https://img.shields.io/packagist/dt/hawkbit/persistence.svg?style=flat-square
-[ico-coveralls]: https://img.shields.io/coveralls/HawkBitPhp/hawkbit-persistence/master.svg?style=flat-square
+[ico-travis]: https://img.shields.io/travis/HawkBitPhp/hawkbit-database/master.svg?style=flat-square
+[ico-downloads]: https://img.shields.io/packagist/dt/hawkbit/database.svg?style=flat-square
+[ico-coveralls]: https://img.shields.io/coveralls/HawkBitPhp/hawkbit-database/master.svg?style=flat-square
 
 [link-packagist]: https://packagist.org/packages/hawkbit/hawkbit
 [link-travis]: https://travis-ci.org/HawkBitPhp/hawkbit

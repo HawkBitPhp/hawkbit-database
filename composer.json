@@ -1,7 +1,6 @@
 {
-  "name": "hawkbit/persistence",
-  "type": "hawkbit-component",
-  "description": "Persistence layer for Hawkbit PSR-7 Micro PHP framework",
+  "name": "hawkbit/database",
+  "description": "Object orientated database handling",
   "keywords": [
     "doctrine",
     "orm",
@@ -18,13 +17,11 @@
   ],
   "require": {
     "php": ">=5.5.0",
-    "doctrine/collections": "~1.3",
     "doctrine/dbal": "~2.5",
     "doctrine/inflector": "~1.1"
   },
   "require-dev": {
-    "phpunit/phpunit": "~4.8",
-    "hawkbit/hawkbit": "~2.0"
+    "phpunit/phpunit": "~4.8"
   },
   "autoload": {
     "psr-4": {

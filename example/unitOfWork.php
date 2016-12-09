@@ -23,19 +23,41 @@ $connection->exec('CREATE TABLE post (id int, title VARCHAR(255), content TEXT, 
 $connection->getMapperLocator()->register(PostMapper::class);
 
 // load mapper
+$mapper = $connection->loadMapper(Post::class);
+$unitOfWork = $connection->createUnitOfWork();
 $entity = new Post();
-$mapper = $connection->loadMapper($entity);
+
+// or create entity from mapper
+//$entity = $mapper->createEntity();
 
 // create entity
 $entity->setContent('cnt');
-$mapper->create($entity);
+$unitOfWork->create($entity);
+
+// commit transaction
+if(false === $unitOfWork->commit()){
+    //handle exception
+    $unitOfWork->getException();
+
+    // get last processed entity
+    $unitOfWork->getLastProcessed();
+}
+
+// get all modified entities
+$unitOfWork->getModified();
+
+// get a list of all entities by state
+$unitOfWork->getProcessed();
 
 // find entity by primary key or compound key
 $mapper->find(['id' => 1]);
 
 // update entity
 $entity->setContent('FOO');
-$mapper->update($entity);
+$unitOfWork->update($entity);
 
 // delete entity
-$mapper->delete($entity);
+$unitOfWork->delete($entity);
+
+// commit transaction
+$unitOfWork->commit();

@@ -1,8 +1,16 @@
-# Hawkbit Persistence Changelog
+# Hawkbit Database Changelog
 
 ## 1.0.0
 
 ### Added
 
- - Add persistence service, service provider and documentation
+ - Add mapper
+ - Add connection service
+ - Add gateway
+ - Add hydrator
+ - Add mapper
+ - Add identity map
+ - Add data mapper
+ - Add unit of work
+ 
  

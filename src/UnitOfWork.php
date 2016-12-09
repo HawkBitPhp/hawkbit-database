@@ -38,6 +38,11 @@ final class UnitOfWork
     private $processed = [];
 
     /**
+     * @var
+     */
+    private $lastProcessed = null;
+
+    /**
      * @var Connection
      */
     private $connection;
@@ -79,6 +84,22 @@ final class UnitOfWork
     public function getException()
     {
         return $this->exception;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getLastProcessed()
+    {
+        return $this->lastProcessed;
+    }
+
+    /**
+     * @return array
+     */
+    public function getProcessed()
+    {
+        return $this->processed;
     }
 
     /**
@@ -184,6 +205,7 @@ final class UnitOfWork
         $connection = $this->connection;
         $this->processed = [];
         $this->modified = [];
+        $this->lastProcessed = null;
 
         try {
             $connection->beginTransaction();
@@ -220,6 +242,7 @@ final class UnitOfWork
     {
         foreach ($entities as $key => $entity) {
             $task($entity);
+            $this->lastProcessed = $entity;
             $this->processed[$label][] = $entity;
             if(IdentityMap::REMOVED !== $label){
                 $this->modified[] = $entity;
