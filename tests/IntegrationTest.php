@@ -14,6 +14,8 @@ use Hawkbit\Database\Connection;
 use Hawkbit\Database\ConnectionManager;
 use Hawkbit\Database\Tests\Stubs\PostEntity;
 use Hawkbit\Database\Tests\Stubs\PostMapper;
+use Hawkbit\Database\Tests\Stubs\UserEntity;
+use Hawkbit\Database\Tests\Stubs\UserMapper;
 
 class IntegrationTest extends \PHPUnit_Framework_TestCase
 {
@@ -35,6 +37,7 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
         ]);
 
         $connection->getMapperLocator()->register(PostMapper::class);
+        $connection->getMapperLocator()->register(UserMapper::class);
 
         $connection->exec('CREATE TABLE post (id INTEGER PRIMARY KEY, content TEXT)');
         $connection->exec('CREATE TABLE user (id INTEGER PRIMARY KEY, username VARCHAR)');
@@ -109,8 +112,11 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
     public function testUoWIntegration()
     {
         $connection = $this->connection;
-        /** @var PostMapper $mapper */
-        $mapper = $connection->loadMapper(PostEntity::class);
+        /** @var PostMapper $postMapper */
+        $postMapper = $connection->loadMapper(PostEntity::class);
+
+        /** @var UserMapper $userMapper */
+        $userMapper = $connection->loadMapper(UserEntity::class);
         $unitOfWork = $connection->createUnitOfWork();
 
         $contentFromAnyOtherSource = [
@@ -119,10 +125,23 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
             'Hello 2',
         ];
 
+        $userFromAnyOtherSource = [
+            'Jake',
+            'Andy',
+            'Dave',
+        ];
+
         foreach ($contentFromAnyOtherSource as $content) {
             /** @var PostEntity $entity */
-            $entity = $mapper->createEntity();
+            $entity = $postMapper->createEntity();
             $entity->setContent($content);
+            $unitOfWork->create($entity);
+        }
+
+        foreach ($userFromAnyOtherSource as $content) {
+            /** @var UserEntity $entity */
+            $entity = $userMapper->createEntity();
+            $entity->setUsername($content);
             $unitOfWork->create($entity);
         }
 
@@ -130,14 +149,33 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
 
         // test find commited entities
         foreach ($contentFromAnyOtherSource as $content) {
-            $foundEntity = $mapper->select(function (QueryBuilder $query) use ($content) {
+            /** @var PostEntity $foundPostEntity */
+            $foundPostEntity = $postMapper->select(function (QueryBuilder $query) use ($content) {
                 $query->where($query->expr()->eq('content', $query->createPositionalParameter($content, Type::STRING)));
             }, ['*'], true);
 
             // test object has been found in database
-            $foundResult = $mapper->getGateway()->select()->where('content = ?')->setParameter(0, $content, Type::STRING)->execute()->fetch();
-            $this->assertEquals((int)$foundResult['id'], $foundEntity->getId());
-            $this->assertEquals($foundResult['content'], $foundEntity->getContent());
+            $foundResult = $postMapper->getGateway()->select()->where('content = ?')->setParameter(0, $content, Type::STRING)->execute()->fetch();
+            $this->assertEquals((int)$foundResult['id'], $foundPostEntity->getId());
+            $this->assertEquals($foundResult['content'], $foundPostEntity->getContent());
+        }
+
+        // test find commited entities
+        foreach ($userFromAnyOtherSource as $user) {
+
+            /** @var UserEntity $foundUserEntity */
+            $foundUserEntity = $userMapper->select(function (QueryBuilder $query) use ($user) {
+                $query->where($query->expr()->eq('username', $query->createPositionalParameter($user, Type::STRING)));
+            }, ['*'], true);
+
+            // test object has been found in database
+            $foundResult = $userMapper->getGateway()->select()->where('username = ?')->setParameter(0, $user, Type::STRING)->execute()->fetch();
+            $this->assertEquals((int)$foundResult['id'], $foundUserEntity->getId());
+            $this->assertEquals($foundResult['username'], $foundUserEntity->getUsername());
+        }
+
+        if(true){
+
         }
     }
 }

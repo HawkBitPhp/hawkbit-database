@@ -30,12 +30,12 @@ final class UnitOfWork
     /**
      * @var object[]
      */
-    private $completed = [];
+    private $modified = [];
 
     /**
-     * @var \SplObjectStorage
+     * @var array
      */
-    private $completedState = null;
+    private $processed = [];
 
     /**
      * @var Connection
@@ -55,15 +55,14 @@ final class UnitOfWork
     public function __construct(Connection $connection)
     {
         $this->connection = $connection;
-        $this->completedState = new \SplObjectStorage();
     }
 
     /**
      * @return \object[]
      */
-    public function getCompleted()
+    public function getModified()
     {
-        return $this->completed;
+        return $this->modified;
     }
 
     /**
@@ -219,8 +218,10 @@ final class UnitOfWork
     {
         foreach ($entities as $key => $entity) {
             $task($entity);
-            $this->completedState[$entity] = $label;
-            $this->completed[] = $entity;
+            $this->processed[$label][] = $entity;
+            if(IdentityMap::REMOVED !== $label){
+                $this->modified[] = $entity;
+            }
             unset($entities[$key]);
         }
     }
