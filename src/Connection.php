@@ -55,12 +55,10 @@ final class Connection extends \Doctrine\DBAL\Connection
     }
 
     /**
-     * @param $entityOrMapper
-     * @return Mapper|AbstractMapper
+     * @return UnitOfWork
      */
-    public function loadMapper($entityOrMapper){
-
-        return $this->getMapperLocator()->locate($entityOrMapper);
+    public function createUnitOfWork(){
+        return new UnitOfWork($this);
     }
 
     /**
@@ -74,6 +72,15 @@ final class Connection extends \Doctrine\DBAL\Connection
         return $this->mapperLocator;
     }
 
+
+    /**
+     * @param $entityOrMapper
+     * @return Mapper|AbstractMapper
+     */
+    public function loadMapper($entityOrMapper){
+
+        return $this->getMapperLocator()->locate($entityOrMapper);
+    }
 
     /**
      * @param $classOrObject
@@ -93,13 +100,6 @@ final class Connection extends \Doctrine\DBAL\Connection
         }
 
         return $this->identityMap[$classOrObject];
-    }
-
-    /**
-     * @return UnitOfWork
-     */
-    public function createUnitOfWork(){
-        return new UnitOfWork($this);
     }
 
 }
