@@ -51,7 +51,7 @@ The following versions of PHP are supported by this version.
 
 ## Usage
 
-View [Examples](examples) for usage.
+View [Examples](example) for usage.
 
 ## Change log
 
