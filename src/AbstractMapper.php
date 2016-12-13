@@ -38,6 +38,11 @@ abstract class AbstractMapper implements Mapper
     protected $primaryKey;
 
     /**
+     * @var string
+     */
+    protected $autoIncrementKey;
+
+    /**
      * @var Column[]
      */
     protected $columns;
@@ -46,11 +51,6 @@ abstract class AbstractMapper implements Mapper
      * @var Hydrator
      */
     private $hydrator;
-
-    /**
-     * @var string
-     */
-    protected $lastInsertIdReference;
 
     /**
      * @var IdentityMap
@@ -157,9 +157,9 @@ abstract class AbstractMapper implements Mapper
     /**
      * @return string
      */
-    final public function getLastInsertIdReference()
+    final public function getAutoIncrementKey()
     {
-        return $this->lastInsertIdReference;
+        return $this->autoIncrementKey;
     }
 
     /**
@@ -240,9 +240,9 @@ abstract class AbstractMapper implements Mapper
     public function find($primaryKey = [])
     {
         // load entity from cache
-        if(isset($primaryKey[$this->getLastInsertIdReference()])){
-            if($this->getIdentityMap()->hasId($primaryKey[$this->getLastInsertIdReference()])){
-                return $this->getIdentityMap()->getObject($primaryKey[$this->getLastInsertIdReference()]);
+        if(isset($primaryKey[$this->getAutoIncrementKey()])){
+            if($this->getIdentityMap()->hasId($primaryKey[$this->getAutoIncrementKey()])){
+                return $this->getIdentityMap()->getObject($primaryKey[$this->getAutoIncrementKey()]);
             }
         }
 
@@ -298,9 +298,9 @@ abstract class AbstractMapper implements Mapper
             $entity = null;
             // fetch entity from identity map
             // keeping object id
-            if(isset($record[$this->getLastInsertIdReference()])){
-                if($identityMap->hasId($record[$this->getLastInsertIdReference()])){
-                    $entity = $identityMap->getObject($record[$this->getLastInsertIdReference()]);
+            if(isset($record[$this->getAutoIncrementKey()])){
+                if($identityMap->hasId($record[$this->getAutoIncrementKey()])){
+                    $entity = $identityMap->getObject($record[$this->getAutoIncrementKey()]);
                 }
             }
 
@@ -344,7 +344,7 @@ abstract class AbstractMapper implements Mapper
 
         $result = $query->execute();
 
-        $this->getIdentityMap()->remove($data[$this->getLastInsertIdReference()], $entity);
+        $this->getIdentityMap()->remove($data[$this->getAutoIncrementKey()], $entity);
 
         return $result;
     }
@@ -368,12 +368,12 @@ abstract class AbstractMapper implements Mapper
         $query->execute();
 
         //inject auto increment key
-        if (null !== $this->getLastInsertIdReference()) {
-            $data[$this->getLastInsertIdReference()] = $this->connection->lastInsertId();
+        if (null !== $this->getAutoIncrementKey()) {
+            $data[$this->getAutoIncrementKey()] = $this->connection->lastInsertId();
             $entity = $this->map($data, $entity);
 
             // add identity
-            $this->getIdentityMap()->set($data[$this->getLastInsertIdReference()], $entity);
+            $this->getIdentityMap()->set($data[$this->getAutoIncrementKey()], $entity);
         }
 
         return $entity;
@@ -414,7 +414,7 @@ abstract class AbstractMapper implements Mapper
         $query->execute();
 
         // update identity
-        $this->getIdentityMap()->set($data[$this->getLastInsertIdReference()], $entity);
+        $this->getIdentityMap()->set($data[$this->getAutoIncrementKey()], $entity);
 
         // we don't need to update entity data
         return $entity;
@@ -530,8 +530,8 @@ abstract class AbstractMapper implements Mapper
         reset($primaryKey);
 
         // sanitize and validate last insert id reference which is a subset of primary key
-        if (0 < count($this->primaryKey) && null === $this->lastInsertIdReference) {
-            $this->lastInsertIdReference = current($primaryKey);
+        if (0 < count($this->primaryKey) && null === $this->autoIncrementKey) {
+            $this->autoIncrementKey = current($primaryKey);
         }
 
         //sanitize and validate columns

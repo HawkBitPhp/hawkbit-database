@@ -117,8 +117,8 @@ final class UnitOfWork
         $mapper = $this->connection->loadMapper($object);
         $data = $mapper->getHydrator()->extract($object);
 
-        if (isset($data[$mapper->getLastInsertIdReference()])) {
-            $mapper->getIdentityMap()->set($data[$mapper->getLastInsertIdReference()], $object);
+        if (isset($data[$mapper->getAutoIncrementKey()])) {
+            $mapper->getIdentityMap()->set($data[$mapper->getAutoIncrementKey()], $object);
         }
 
         $this->updatedObjects[spl_object_hash($object)] = $object;
@@ -161,8 +161,8 @@ final class UnitOfWork
         $mapper = $this->connection->loadMapper($object);
         $data = $mapper->getHydrator()->extract($object);
 
-        if (isset($data[$mapper->getLastInsertIdReference()])) {
-            $mapper->getIdentityMap()->remove($data[$mapper->getLastInsertIdReference()], $object);
+        if (isset($data[$mapper->getAutoIncrementKey()])) {
+            $mapper->getIdentityMap()->remove($data[$mapper->getAutoIncrementKey()], $object);
         }
 
         $this->deletedObjects[spl_object_hash($object)] = $object;

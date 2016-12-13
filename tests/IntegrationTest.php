@@ -60,7 +60,7 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('post', $mapper->getTableName());
         $this->assertArrayHasKey('id', $mapper->getColumns());
         $this->assertArrayHasKey('content', $mapper->getColumns());
-        $this->assertEquals('id', $mapper->getLastInsertIdReference());
+        $this->assertEquals('id', $mapper->getAutoIncrementKey());
 
         $entity->setContent('cnt');
         $this->assertEquals(null, $entity->getId());

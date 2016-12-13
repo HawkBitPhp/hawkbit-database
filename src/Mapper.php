@@ -54,7 +54,7 @@ interface Mapper
     /**
      * @return string
      */
-    public function getLastInsertIdReference();
+    public function getAutoIncrementKey();
 
     /**
      * @return Gateway
