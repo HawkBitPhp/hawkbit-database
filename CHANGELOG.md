@@ -2,6 +2,14 @@
 
 ## 1.0.1
 
+*Full documentation available now!*
+
+### Added
+
+ - Create gateway from connection
+
+## 1.0.1
+
 ### Altered
 
  - Add table alias feature to mapper
