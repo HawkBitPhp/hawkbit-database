@@ -1,6 +1,6 @@
 # Hawkbit Database Changelog
 
-## 1.0.1
+## 1.0.2
 
 *Full documentation available now!*
 
