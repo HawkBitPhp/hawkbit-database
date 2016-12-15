@@ -2,11 +2,12 @@
 
 ## 1.0.2
 
-*Full documentation available now!*
+*Full [documentation](/README.md) available now!*
 
 ### Added
 
  - Create gateway from connection
+ - PHP 7.1 Support
 
 ## 1.0.1
 
@@ -20,7 +21,6 @@
 
 ### Added
 
- - Add mapper
  - Add connection service
  - Add gateway
  - Add hydrator

@@ -47,6 +47,7 @@ The following versions of PHP are supported by this version.
 * PHP 5.5
 * PHP 5.6
 * PHP 7.0
+* PHP 7.1
 * HHVM
 
 ## Usage
@@ -59,7 +60,7 @@ The following versions of PHP are supported by this version.
 
 ### Examples
 
-We also provide [Examples](example) for following documentation.
+We also provide [Examples](/example) for following documentation.
 
 ### Connections 
 
@@ -132,6 +133,24 @@ $default = ConnectionManager::getInstance()->get();
 $second = ConnectionManager::getInstance()->get('second');
 
 ```
+
+##### Prefixing
+
+On a shared database it is use full to to prefix tables with a specific name, e.g. application abbreviation. You need to 
+set the prefix on your connection. The system is prefixing all table names automatically.
+
+Add PHP 7.1 support
+
+```php
+<?php
+
+// setup prefixes
+$connection->setPrefix('custom_');
+$gateway = $connection->createGateway('user'); // connects to custom_user table
+
+```
+
+As you can see you (as do mapper) pass the tablename and internally the tablename will be prefixed.  
 
 #### Migration
 
@@ -542,9 +561,9 @@ The MIT License (MIT). Please see [License File](LICENSE.md) for more informatio
 [ico-downloads]: https://img.shields.io/packagist/dt/hawkbit/database.svg?style=flat-square
 [ico-coveralls]: https://img.shields.io/coveralls/HawkBitPhp/hawkbit-database/master.svg?style=flat-square
 
-[link-packagist]: https://packagist.org/packages/hawkbit/hawkbit
-[link-travis]: https://travis-ci.org/HawkBitPhp/hawkbit
-[link-downloads]: https://packagist.org/packages/hawkbit/hawkbit
+[link-packagist]: https://packagist.org/packages/hawkbit/hawkbit-database
+[link-travis]: https://travis-ci.org/HawkBitPhp/database
+[link-downloads]: https://packagist.org/packages/hawkbit/hawkbit-database
 [link-author]: https://github.com/mbunge
 [link-contributors]: ../../contributors
-[link-coveralls]: https://coveralls.io/github/HawkBitPhp/hawkbit
+[link-coveralls]: https://coveralls.io/github/HawkBitPhp/hawkbit-database
