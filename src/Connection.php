@@ -62,6 +62,15 @@ final class Connection extends \Doctrine\DBAL\Connection
     }
 
     /**
+     * @param $table
+     * @param null $alias
+     * @return Gateway
+     */
+    public function createGateway($table, $alias = null){
+        return new Gateway($this, $table, $alias);
+    }
+
+    /**
      * @return MapperLocator
      */
     public function getMapperLocator()
