@@ -27,13 +27,14 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
     protected function tearDown()
     {
         $this->connection->exec('DROP TABLE post');
+        $this->connection->exec('DROP TABLE user');
     }
 
     protected function setUp()
     {
         $connection = ConnectionManager::create([
             'url' => 'sqlite:///:memory:',
-            'memory' => 'true'
+            'memory' => true
         ]);
 
         $connection->getMapperLocator()->register(PostMapper::class);
@@ -196,10 +197,6 @@ class IntegrationTest extends \PHPUnit_Framework_TestCase
         $unitOfWork->create($thirdPost);
 
         $unitOfWork->commit();
-
-        if(true){
-
-        }
 
     }
 }

@@ -178,10 +178,11 @@ abstract class AbstractMapper implements Mapper
      * @param null $id
      * @return object
      */
-    final public function createEntity($id = null){
+    final public function createEntity($id = null)
+    {
         $identityMap = $this->getIdentityMap();
-        if(null !== $id){
-            if($identityMap->hasId($id)){
+        if (null !== $id) {
+            if ($identityMap->hasId($id)) {
                 return $identityMap->getObject($id);
             }
         }
@@ -215,7 +216,7 @@ abstract class AbstractMapper implements Mapper
     public function isNew($dataOrEntity)
     {
         if ($this->isEntity($dataOrEntity)) {
-            $dataOrEntity = $this->extract($dataOrEntity);
+            $dataOrEntity = $this->extract($dataOrEntity, null);
         }
 
         // iterate primary keys
@@ -240,8 +241,8 @@ abstract class AbstractMapper implements Mapper
     public function find($primaryKey = [])
     {
         // load entity from cache
-        if(isset($primaryKey[$this->getAutoIncrementKey()])){
-            if($this->getIdentityMap()->hasId($primaryKey[$this->getAutoIncrementKey()])){
+        if (isset($primaryKey[$this->getAutoIncrementKey()])) {
+            if ($this->getIdentityMap()->hasId($primaryKey[$this->getAutoIncrementKey()])) {
                 return $this->getIdentityMap()->getObject($primaryKey[$this->getAutoIncrementKey()]);
             }
         }
@@ -298,8 +299,8 @@ abstract class AbstractMapper implements Mapper
             $entity = null;
             // fetch entity from identity map
             // keeping object id
-            if(isset($record[$this->getAutoIncrementKey()])){
-                if($identityMap->hasId($record[$this->getAutoIncrementKey()])){
+            if (isset($record[$this->getAutoIncrementKey()])) {
+                if ($identityMap->hasId($record[$this->getAutoIncrementKey()])) {
                     $entity = $identityMap->getObject($record[$this->getAutoIncrementKey()]);
                 }
             }
@@ -437,26 +438,18 @@ abstract class AbstractMapper implements Mapper
      *
      * @param $data
      * @param null $entity
+     * @param string $convertTo
      * @return object
      */
-    protected function map($data, $entity = null)
+    protected function map($data, $entity = null, $convertTo = 'php')
     {
         // process entity
-        $columns = $this->getColumns();
         if (false === $this->isEntity($entity)) {
             $reflection = new \ReflectionClass($this->getEntityClass());
             $entity = $reflection->newInstance();
         }
 
-        foreach ($columns as $column) {
-            $name = $column->getName();
-
-            if (!isset($data[$name])) {
-                continue;
-            }
-
-            $data[$name] = $column->getType()->convertToPHPValue($data[$name], $this->connection->getDatabasePlatform());
-        }
+        $data = $this->convertValueTo($convertTo, $data);
 
         return $this->hydrator->hydrate($data, $entity);
     }
@@ -464,30 +457,18 @@ abstract class AbstractMapper implements Mapper
     /**
      * Extract data from entity and respect data types
      * @param $entity
+     * @param string $convertTo
      * @return array
      */
-    protected function extract($entity)
+    protected function extract($entity, $convertTo = 'php')
     {
-        $columns = $this->getColumns();
-        $class = $this->getEntityClass();
-
         if (!$this->isEntity($entity)) {
-            throw new \InvalidArgumentException('Object needs to be an instance of ' . $class);
+            throw new \InvalidArgumentException('Object needs to be an instance of ' . $this->getEntityClass());
         }
 
         $data = $this->hydrator->extract($entity);
 
-        foreach ($columns as $column) {
-            $name = $column->getName();
-
-            if (!isset($data[$name])) {
-                continue;
-            }
-
-            $data[$name] = $column->getType()->convertToPHPValue($data[$name], $this->connection->getDatabasePlatform());
-        }
-
-        return $data;
+        return $this->convertValueTo($convertTo, $data);
     }
 
     /**
@@ -552,6 +533,37 @@ abstract class AbstractMapper implements Mapper
             $this->tableNameAlias = substr($this->tableName, 3);
         }
 
+    }
+
+    /**
+     * @param $convertTo
+     * @param array $data
+     * @return array
+     */
+    protected function convertValueTo($convertTo, $data)
+    {
+        $columns = $this->getColumns();
+        foreach ($columns as $column) {
+            $name = $column->getName();
+
+            if (!isset($data[$name]) || null === $convertTo) {
+                continue;
+            }
+
+            $value = $data[$name];
+
+            switch ($convertTo) {
+                case 'database':
+                    $value = $column->getType()->convertToDatabaseValue($value, $this->connection->getDatabasePlatform());
+                    break;
+                case 'php':
+                    $value = $column->getType()->convertToPHPValue($value, $this->connection->getDatabasePlatform());
+            }
+
+            $data[$name] = $value;
+        }
+
+        return $data;
     }
 
 }

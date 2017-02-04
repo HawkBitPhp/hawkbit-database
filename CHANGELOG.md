@@ -1,5 +1,11 @@
 # Hawkbit Database Changelog
 
+## 1.0.3
+
+### Fixed
+
+ - Fix #1 extracting and mapping data and respecting their types
+
 ## 1.0.2
 
 *Full [documentation](/README.md) available now!*
